@@ -337,3 +337,107 @@ const sendTokenResponse = (user, statusCode, res, message) => {
       },
     });
 };
+
+/**
+ * @desc    Reset parent password by admin/staff
+ * @route   PUT /api/auth/reset-parent-password/:userId
+ * @access  Private (Admin, Staff)
+ */
+export const resetParentPassword = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return sendError(res, 404, 'Parent not found');
+    }
+
+    if (user.role !== 'parent') {
+      return sendError(res, 400, 'User is not a parent');
+    }
+
+    // Generate new temporary password
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    user.password = tempPassword; // Will be hashed by pre-save middleware
+    await user.save();
+
+    sendSuccess(res, 200, 'Parent password reset successfully', { 
+      parentName: `${user.firstName} ${user.lastName}`,
+      parentEmail: user.email,
+      tempPassword 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete parent account (only if no linked children)
+ * @route   DELETE /api/auth/parents/:userId
+ * @access  Private (Admin, Staff)
+ */
+export const deleteParent = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return sendError(res, 404, 'Parent not found');
+    }
+
+    if (user.role !== 'parent') {
+      return sendError(res, 400, 'User is not a parent');
+    }
+
+    // Check if parent is linked to any children
+    const linkedChildrenCount = await (await import('../models/Child.js')).default.countDocuments({ 'parents.parent': user._id });
+    if (linkedChildrenCount > 0) {
+      return sendError(res, 400, 'Cannot delete parent with linked children');
+    }
+
+    await user.deleteOne();
+    sendSuccess(res, 200, 'Parent deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete any user with cascade cleanup
+ * @route   DELETE /api/auth/users/:id
+ * @access  Private (Admin, Staff)
+ */
+export const deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    // Parent cascade: remove parent reference from children; ensure each child retains at least one parent
+    if (user.role === 'parent') {
+      const { default: Child } = await import('../models/Child.js');
+      const children = await Child.find({ 'parents.parent': user._id });
+      for (const child of children) {
+        child.parents = child.parents.filter(p => p.parent.toString() !== user._id.toString());
+        if (child.parents.length === 0) {
+          // Abort: would orphan child
+          return sendError(res, 400, `Cannot delete parent; child ${child.firstName} ${child.lastName} would be left without any parent.`);
+        }
+        await child.save();
+      }
+    }
+
+    // Staff cascade: remove from groups instructors arrays and delete staff profile
+    if (user.role === 'staff') {
+      const { default: Group } = await import('../models/Group.js');
+      const { default: Staff } = await import('../models/Staff.js');
+      await Group.updateMany({ instructors: user._id }, { $pull: { instructors: user._id } });
+      await Staff.deleteOne({ user: user._id });
+    }
+
+    // Finally delete user
+    await user.deleteOne();
+    sendSuccess(res, 200, 'User deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};

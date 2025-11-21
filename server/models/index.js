@@ -10,3 +10,4 @@ export { default as Activity } from './Activity.js';
 export { default as Message } from './Message.js';
 export { default as MedicalRecord } from './MedicalRecord.js';
 export { default as Document } from './Document.js';
+export { default as EnrollmentRequest } from './EnrollmentRequest.js';

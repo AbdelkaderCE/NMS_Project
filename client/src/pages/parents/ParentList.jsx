@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMail, FiPhone, FiUser } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMail, FiPhone, FiUser, FiKey } from 'react-icons/fi';
 import { userAPI, authAPI } from '../../api';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -113,6 +113,29 @@ const ParentList = () => {
     setEditingParent(null);
   };
 
+  const handleResetPassword = async (parent) => {
+    if (!window.confirm(`Reset password for ${parent.firstName} ${parent.lastName}?`)) return;
+
+    try {
+      const response = await authAPI.resetParentPassword(parent._id);
+      const tempPassword = response.data?.tempPassword || response.tempPassword;
+      window.alert(
+        `Password reset successful!\n\n` +
+        `Parent: ${parent.firstName} ${parent.lastName}\n` +
+        `Email: ${parent.email}\n` +
+        `Temporary Password: ${tempPassword}\n\n` +
+        `Please send this to the parent's email.`
+      );
+      setAlert({ type: 'success', message: 'Parent password reset successfully!' });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setAlert({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to reset password' 
+      });
+    }
+  };
+
   // Filter parents based on search
   const filteredParents = parents.filter((parent) => {
     const fullName = `${parent.firstName} ${parent.lastName}`.toLowerCase();
@@ -194,7 +217,21 @@ const ParentList = () => {
                   </div>
                   <div className="flex space-x-2">
                     <button
+                      onClick={() => handleResetPassword(parent)}
+                      className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50"
+                      title="Reset Password"
+                    >
+                      <FiKey size={18} />
+                    </button>
+                    <button
                       onClick={() => handleEdit(parent)}
+                      className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50"
+                      title="Edit"
+                    >
+                      <FiEdit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(parent._id)}
                       className="text-blue-600 hover:text-blue-800"
                       title="Edit"
                     >

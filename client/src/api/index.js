@@ -10,6 +10,7 @@ export const authAPI = {
   updatePassword: (data) => api.put('/auth/password', data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
   resetPassword: (data) => api.put('/auth/reset-password', data),
+  resetParentPassword: (userId) => api.put(`/auth/reset-parent-password/${userId}`),
 };
 
 // User APIs
@@ -143,4 +144,16 @@ export const dashboardAPI = {
   getActivities: (params) => api.get('/dashboard/activities', { params }),
   getParentEngagement: () => api.get('/dashboard/parent-engagement'),
   getQuickStats: () => api.get('/dashboard/quick-stats'),
+};
+
+// Enrollment Request APIs
+export const enrollmentRequestAPI = {
+  submitPublic: (data) => api.post('/enrollment-requests', { ...data, requestType: 'public' }),
+  submitAsParent: (data) => api.post('/enrollment-requests', { ...data, requestType: 'parent' }),
+  getAll: (params) => api.get('/enrollment-requests', { params }),
+  getById: (id) => api.get(`/enrollment-requests/${id}`),
+  getMyRequests: () => api.get('/enrollment-requests/my-requests'),
+  accept: (id, data) => api.post(`/enrollment-requests/${id}/accept`, data),
+  reject: (id, data) => api.post(`/enrollment-requests/${id}/reject`, data),
+  delete: (id) => api.delete(`/enrollment-requests/${id}`),
 };

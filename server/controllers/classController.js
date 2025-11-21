@@ -9,7 +9,25 @@ import { sendSuccess, sendError } from '../utils/responseHandler.js';
 export const createClass = async (req, res, next) => {
   try {
     const classData = await Class.create(req.body);
-    sendSuccess(res, 201, 'Class created successfully', classData);
+    
+    // Automatically create a default group for this class
+    await Group.create({
+      name: `${classData.name} - Group A`,
+      class: classData._id,
+      maxCapacity: 15,
+      instructors: [], // optional initial empty list
+      schedule: {
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        startTime: '08:00',
+        endTime: '16:00'
+      },
+      room: 'Room 1'
+    });
+    
+    // Fetch the class with populated groups
+    const classWithGroup = await Class.findById(classData._id).populate('groups');
+    
+    sendSuccess(res, 201, 'Class and default group created successfully', classWithGroup);
   } catch (error) {
     next(error);
   }

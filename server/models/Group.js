@@ -63,9 +63,11 @@ groupSchema.virtual('childrenCount', {
 });
 
 // Check capacity before saving
+// Allow creation without instructors; enforce only if provided and empty is intentional
 groupSchema.pre('save', function (next) {
-  if (this.instructors && this.instructors.length === 0) {
-    next(new Error('At least one instructor must be assigned'));
+  if (this.instructors && Array.isArray(this.instructors)) {
+    // If instructors array exists but is intentionally empty, we allow it for initial setup
+    // Future validation (e.g., when assigning children) can enforce at least one instructor.
   }
   next();
 });

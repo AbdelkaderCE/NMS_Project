@@ -11,7 +11,8 @@ import {
   FiLogOut,
   FiGrid,
   FiLayers,
-  FiMessageCircle
+  FiMessageCircle,
+  FiFileText
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -32,6 +33,7 @@ const Sidebar = () => {
     { name: 'Calendar', href: '/activities/calendar', icon: FiCalendar, roles: ['admin', 'staff', 'parent'] },
     { name: 'Messages', href: '/messages', icon: FiMail, roles: ['admin', 'staff', 'parent'] },
     { name: 'Chat', href: '/chat', icon: FiMessageCircle, roles: ['admin', 'staff', 'parent'] },
+    { name: 'Enrollment Requests', href: '/enrollment/requests', icon: FiFileText, roles: ['admin', 'staff'] },
   ];
 
   const filteredNavigation = navigation.filter(item => 

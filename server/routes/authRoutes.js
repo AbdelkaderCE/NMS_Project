@@ -10,6 +10,9 @@ import {
   updatePassword,
   forgotPassword,
   resetPassword,
+  resetParentPassword,
+  deleteParent,
+  deleteUser,
 } from '../controllers/authController.js';
 import {
   registerValidation,
@@ -39,5 +42,8 @@ router.get('/users', getUsers);
 router.put('/users/:id', updateUser);
 router.put('/profile', updateProfileValidation, validate, updateProfile);
 router.put('/password', updatePasswordValidation, validate, updatePassword);
+router.put('/reset-parent-password/:userId', resetParentPassword);
+router.delete('/parents/:userId', deleteParent);
+router.delete('/users/:id', deleteUser);
 
 export default router;

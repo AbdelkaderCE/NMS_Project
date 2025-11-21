@@ -196,6 +196,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import enrollmentRequestRoutes from './routes/enrollmentRequestRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/children', childrenRoutes);
@@ -207,6 +208,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/enrollment-requests', enrollmentRequestRoutes);
 
 // ==================== ERROR HANDLING ====================
 

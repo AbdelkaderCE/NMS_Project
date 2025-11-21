@@ -214,6 +214,7 @@ const ClassList = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
                   <p className="text-sm text-gray-500">{formatAgeRange(classItem.ageRange)}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-1">ID: {classItem._id}</p>
                 </div>
               </div>
               {user?.role === 'admin' && (
