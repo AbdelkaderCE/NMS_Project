@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiSearch, FiDollarSign, FiCreditCard, FiDownload, FiTrash2, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiDollarSign, FiCreditCard, FiDownload, FiTrash2, FiCheck, FiAlertCircle, FiClock } from 'react-icons/fi';
 import { paymentAPI, userAPI } from '../../api';
 import { childrenAPI } from '../../api';
 import Layout from '../../components/layout/Layout';
@@ -8,6 +8,7 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
+import { useAuth } from '../../context/AuthContext';
 
 const PaymentList = () => {
   const [payments, setPayments] = useState([]);
@@ -39,6 +40,9 @@ const PaymentList = () => {
   });
 
   const user = JSON.parse(localStorage.getItem('user'));
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'admin';
+  const isParent = authUser?.role === 'parent';
 
   useEffect(() => {
     fetchData();
@@ -199,6 +203,31 @@ const PaymentList = () => {
     }
   };
 
+  const handleDownloadPDF = async (id, invoiceNumber) => {
+    try {
+      const response = await paymentAPI.downloadPDF(id);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setAlert({ type: 'success', message: 'Invoice downloaded successfully!' });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      setAlert({ type: 'error', message: 'Failed to download invoice' });
+    }
+  };
+
   const openPaymentModal = (payment) => {
     setSelectedInvoice(payment);
     setPaymentForm({
@@ -230,7 +259,7 @@ const PaymentList = () => {
   };
 
   if (loading) return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="flex justify-center items-center h-64">
         <Loading />
       </div>
@@ -238,7 +267,7 @@ const PaymentList = () => {
   );
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {alert && (
           <Alert
@@ -251,10 +280,16 @@ const PaymentList = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payments & Invoices</h1>
-            <p className="text-gray-600 mt-1">Manage tuition fees and payments</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isParent ? 'My Payments' : 'Payments & Invoices'}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {isParent 
+                ? 'View and manage your payment history' 
+                : 'Manage tuition fees and payments'}
+            </p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'staff') && (
+        {isAdmin && (
           <Button onClick={() => setShowInvoiceModal(true)} icon={FiPlus}>
             Create Invoice
           </Button>
@@ -266,23 +301,25 @@ const PaymentList = () => {
           <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-sm border border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700 font-medium">Total Revenue</p>
+                <p className="text-sm text-green-700 font-medium">
+                  {isParent ? 'Total Paid' : 'Total Revenue'}
+                </p>
                 <p className="text-2xl font-bold text-green-700 mt-1">${stats.totalRevenue.toFixed(2)}</p>
               </div>
               <div className="bg-green-200 p-3 rounded-lg">
-                <FiDollarSign className="text-green-700 text-2xl" />
+                <FiCheck className="text-green-700 text-2xl" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl shadow-sm border border-yellow-200">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl shadow-sm border border-amber-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-700 font-medium">Pending Amount</p>
-                <p className="text-2xl font-bold text-yellow-700 mt-1">${stats.pendingAmount.toFixed(2)}</p>
+                <p className="text-sm text-amber-700 font-medium">Pending Amount</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">${stats.pendingAmount.toFixed(2)}</p>
               </div>
-              <div className="bg-yellow-200 p-3 rounded-lg">
-                <FiCreditCard className="text-yellow-700 text-2xl" />
+              <div className="bg-amber-200 p-3 rounded-lg">
+                <FiClock className="text-amber-700 text-2xl" />
               </div>
             </div>
           </div>
@@ -294,7 +331,7 @@ const PaymentList = () => {
                 <p className="text-2xl font-bold text-red-700 mt-1">{stats.overdueCount}</p>
               </div>
               <div className="bg-red-200 p-3 rounded-lg">
-                <FiTrash2 className="text-red-700 text-2xl" />
+                <FiAlertCircle className="text-red-700 text-2xl" />
               </div>
             </div>
           </div>
@@ -302,11 +339,13 @@ const PaymentList = () => {
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-sm border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-700 font-medium">Paid Invoices</p>
+                <p className="text-sm text-blue-700 font-medium">
+                  {isParent ? 'My Invoices' : 'Paid Invoices'}
+                </p>
                 <p className="text-2xl font-bold text-blue-700 mt-1">{stats.paidCount}</p>
               </div>
               <div className="bg-blue-200 p-3 rounded-lg">
-                <FiCheck className="text-blue-700 text-2xl" />
+                <FiDollarSign className="text-blue-700 text-2xl" />
               </div>
             </div>
           </div>
@@ -368,7 +407,7 @@ const PaymentList = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                {(user?.role === 'admin' || user?.role === 'staff') && (
+                {isAdmin && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -378,7 +417,7 @@ const PaymentList = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isAdmin ? "8" : "7"} className="px-6 py-8 text-center text-gray-500">
                     No payments found
                   </td>
                 </tr>
@@ -412,20 +451,27 @@ const PaymentList = () => {
                       <span
                         className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           payment.status === 'paid'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-800 border border-green-200'
                             : payment.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
                             : payment.status === 'overdue'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'bg-red-100 text-red-800 border border-red-200'
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
                         }`}
                       >
-                        {payment.status}
+                        {payment.status.toUpperCase()}
                       </span>
                     </td>
-                    {(user?.role === 'admin' || user?.role === 'staff') && (
+                    {isAdmin && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleDownloadPDF(payment._id, payment.invoiceNumber)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Download PDF"
+                          >
+                            <FiDownload />
+                          </button>
                           {payment.status !== 'paid' && payment.status !== 'cancelled' && (
                             <button
                               onClick={() => openPaymentModal(payment)}
@@ -443,6 +489,18 @@ const PaymentList = () => {
                             <FiTrash2 />
                           </button>
                         </div>
+                      </td>
+                    )}
+                    {isParent && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleDownloadPDF(payment._id, payment.invoiceNumber)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
+                          title="Download PDF"
+                        >
+                          <FiDownload />
+                          <span>Download</span>
+                        </button>
                       </td>
                     )}
                   </tr>

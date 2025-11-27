@@ -5,6 +5,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES, PAYMENT_STATUS, PAYMENT_METHODS, PAYMENT_TYPES } from '../utils/constants.js';
+import { generateInvoicePDF } from '../utils/pdfGenerator.js';
 
 /**
  * @desc    Create payment/invoice
@@ -79,6 +80,15 @@ export const createPayment = async (req, res, next) => {
       { path: 'parent', select: 'firstName lastName email phone' },
       { path: 'processedBy', select: 'firstName lastName' },
     ]);
+
+    // Audit log
+    await req.audit?.log({
+      action: 'CREATE',
+      resourceType: 'Payment',
+      resourceId: payment._id,
+      resourceName: payment.invoiceNumber,
+      description: `Created invoice ${payment.invoiceNumber} for $${payment.finalAmount}`,
+    });
 
     sendSuccess(res, 201, 'Payment/Invoice created successfully', payment);
   } catch (error) {
@@ -214,6 +224,15 @@ export const updatePayment = async (req, res, next) => {
       .populate('parent', 'firstName lastName email')
       .populate('processedBy', 'firstName lastName');
 
+    // Audit log
+    await req.audit?.log({
+      action: 'UPDATE',
+      resourceType: 'Payment',
+      resourceId: payment._id,
+      resourceName: payment.invoiceNumber,
+      description: `Updated invoice ${payment.invoiceNumber}`,
+    });
+
     sendSuccess(res, 200, 'Payment updated successfully', payment);
   } catch (error) {
     next(error);
@@ -239,6 +258,15 @@ export const deletePayment = async (req, res, next) => {
     }
 
     await payment.deleteOne();
+
+    // Audit log
+    await req.audit?.log({
+      action: 'DELETE',
+      resourceType: 'Payment',
+      resourceId: payment._id,
+      resourceName: payment.invoiceNumber,
+      description: `Deleted invoice ${payment.invoiceNumber}`,
+    });
 
     sendSuccess(res, 200, 'Payment deleted successfully');
   } catch (error) {
@@ -283,6 +311,25 @@ export const markAsPaid = async (req, res, next) => {
       { path: 'child', select: 'firstName lastName photo' },
       { path: 'parent', select: 'firstName lastName email' },
     ]);
+
+    // Audit log
+    await req.audit?.log({
+      action: 'PAYMENT',
+      resourceType: 'Payment',
+      resourceId: payment._id,
+      resourceName: payment.invoiceNumber,
+      description: `Marked invoice ${payment.invoiceNumber} as paid ($${payment.finalAmount})`,
+      changes: {
+        status: { old: 'pending', new: 'paid' },
+        paymentMethod: { old: null, new: paymentMethod },
+        paidDate: { old: null, new: new Date() },
+      },
+    });
+
+    // Send confirmation email (non-blocking)
+    import('../utils/emailService.js').then(({ sendPaymentConfirmation }) => {
+      sendPaymentConfirmation(payment);
+    }).catch(e => console.error('Deferred email module load failed:', e.message));
 
     sendSuccess(res, 200, 'Payment marked as paid successfully', payment);
   } catch (error) {
@@ -515,6 +562,45 @@ export const getPaymentsByParent = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     sendSuccess(res, 200, 'Parent payments retrieved successfully', payments);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Download invoice as PDF
+ * @route   GET /api/payments/:id/pdf
+ * @access  Private (Admin, Staff) or Parent (own invoice)
+ */
+export const downloadInvoicePDF = async (req, res, next) => {
+  try {
+    const payment = await Payment.findById(req.params.id)
+      .populate('child', 'firstName lastName age photo')
+      .populate('parent', 'firstName lastName email phone address')
+      .populate('processedBy', 'firstName lastName');
+
+    if (!payment) {
+      return sendError(res, 404, 'Payment not found');
+    }
+
+    // If user is parent, check if they own this payment
+    if (req.user.role === ROLES.PARENT && payment.parent._id.toString() !== req.user.id) {
+      return sendError(res, 403, 'Not authorized to access this invoice');
+    }
+
+    // Generate PDF
+    const doc = generateInvoicePDF(payment);
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=invoice-${payment.invoiceNumber}.pdf`
+    );
+
+    // Pipe PDF to response
+    doc.pipe(res);
+    doc.end();
   } catch (error) {
     next(error);
   }

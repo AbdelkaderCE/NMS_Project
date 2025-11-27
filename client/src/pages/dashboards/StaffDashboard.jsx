@@ -5,7 +5,7 @@ import { dashboardAPI } from '../../api';
 import { FiUsers, FiCalendar, FiActivity, FiMail, FiCheckCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
-const StaffDashboard = () => {
+const StaffDashboard = ({ onSearchClick }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,7 @@ const StaffDashboard = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout onSearchClick={onSearchClick}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -48,7 +48,7 @@ const StaffDashboard = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Educator Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Staff Dashboard</h1>
           <p className="text-gray-600 mt-1">Manage your daily tasks and activities</p>
         </div>
 

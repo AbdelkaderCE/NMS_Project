@@ -14,7 +14,8 @@ const GroupList = () => {
   const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [staff, setStaff] = useState([]);
+  const [staff, setStaff] = useState([]); // full staff list
+  const teacherStaff = staff.filter(s => s.position === 'teacher');
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -49,7 +50,7 @@ const GroupList = () => {
       const [groupsRes, classesRes, staffRes, childrenRes] = await Promise.all([
         groupAPI.getAll(),
         classAPI.getAll(),
-        staffAPI.getAll(),
+        staffAPI.getAll({ position: 'teacher' }), // request only teachers from backend
         childrenAPI.getAll(),
       ]);
       setGroups(groupsRes.data || []);
@@ -169,7 +170,7 @@ const GroupList = () => {
   );
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {alert && (
           <Alert
@@ -350,7 +351,10 @@ const GroupList = () => {
                 Instructors *
               </label>
               <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                {staff.map((s) => (
+                {teacherStaff.length === 0 && (
+                  <p className="text-xs text-gray-500 px-2 py-1">No teacher staff available. Add staff with position 'teacher' first.</p>
+                )}
+                {teacherStaff.map((s) => (
                   <label key={s._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer">
                     <input
                       type="checkbox"
@@ -359,11 +363,12 @@ const GroupList = () => {
                       className="rounded"
                     />
                     <span className="text-sm">
-                      {s.user?.firstName} {s.user?.lastName} - {s.position}
+                      {s.user?.firstName} {s.user?.lastName}
                     </span>
                   </label>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-1">Only staff with position 'teacher' can be selected as instructors.</p>
             </div>
 
             <div>

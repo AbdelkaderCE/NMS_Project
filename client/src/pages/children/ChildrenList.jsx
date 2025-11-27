@@ -8,7 +8,7 @@ import { childrenAPI, classAPI, groupAPI } from '../../api';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
-const ChildrenList = () => {
+const ChildrenList = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [children, setChildren] = useState([]);
   const [parents, setParents] = useState([]);
@@ -339,7 +339,7 @@ const ChildrenList = () => {
   };
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

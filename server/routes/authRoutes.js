@@ -13,6 +13,7 @@ import {
   resetParentPassword,
   deleteParent,
   deleteUser,
+  activateUser,
 } from '../controllers/authController.js';
 import {
   registerValidation,
@@ -45,5 +46,6 @@ router.put('/password', updatePasswordValidation, validate, updatePassword);
 router.put('/reset-parent-password/:userId', resetParentPassword);
 router.delete('/parents/:userId', deleteParent);
 router.delete('/users/:id', deleteUser);
+router.put('/users/:id/activate', activateUser);
 
 export default router;

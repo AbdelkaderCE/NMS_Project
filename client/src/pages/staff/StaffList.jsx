@@ -4,12 +4,12 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Alert from '../../components/common/Alert';
-import { staffAPI } from '../../api';
+import { staffAPI, userAPI } from '../../api';
 import api from '../../api/axios';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiUser, FiPhone, FiMail } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiUserMinus, FiUserCheck, FiSearch, FiUser, FiPhone, FiMail } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
-const StaffList = () => {
+const StaffList = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +110,7 @@ const StaffList = () => {
     }
     
     if (!editingStaff && !formData.password) {
-      showAlert('error', 'Password is required for new educators');
+      showAlert('error', 'Password is required for new staff members');
       return;
     }
     
@@ -126,7 +126,7 @@ const StaffList = () => {
           emergencyContact: formData.emergencyContact,
         };
         await staffAPI.update(editingStaff._id, updateData);
-        showAlert('success', 'Educator updated successfully');
+        showAlert('success', 'Staff member updated successfully');
       } else {
         // For creating new staff
         const staffData = {
@@ -167,7 +167,7 @@ const StaffList = () => {
         console.log('Response:', response);
         
         if (response.data) {
-          showAlert('success', 'Educator added successfully');
+          showAlert('success', 'Staff member added successfully');
         }
       }
       setShowAddModal(false);
@@ -177,7 +177,7 @@ const StaffList = () => {
       console.error('Full error:', error);
       console.error('Error response:', error.response);
       
-      let errorMessage = 'Failed to save educator';
+      let errorMessage = 'Failed to save staff member';
       
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -217,15 +217,24 @@ const StaffList = () => {
     setShowAddModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this educator?')) return;
-    
+  const handleDeactivate = async (staffId, userId) => {
+    if (!window.confirm('Deactivate this staff account? They will not be able to log in.')) return;
     try {
-      await staffAPI.delete(id);
-      showAlert('success', 'Educator deleted successfully');
+      await userAPI.deactivate(userId);
+      showAlert('success', 'Staff member deactivated successfully');
       fetchStaff();
     } catch (error) {
-      showAlert('error', 'Failed to delete educator');
+      showAlert('error', error.response?.data?.message || 'Failed to deactivate staff member');
+    }
+  };
+
+  const handleActivate = async (userId) => {
+    try {
+      await userAPI.activate(userId);
+      showAlert('success', 'Staff member activated successfully');
+      fetchStaff();
+    } catch (error) {
+      showAlert('error', error.response?.data?.message || 'Failed to activate staff member');
     }
   };
 
@@ -258,20 +267,20 @@ const StaffList = () => {
   };
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Educators Management</h1>
-            <p className="text-gray-600 mt-1">{staff.length} educators registered</p>
+            <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
+            <p className="text-gray-600 mt-1">{staff.length} staff members registered</p>
           </div>
           {user?.role === 'admin' && (
             <Button icon={FiPlus} onClick={() => {
               resetForm();
               setShowAddModal(true);
             }}>
-              Add New Educator
+              Add New Staff Member
             </Button>
           )}
         </div>
@@ -287,7 +296,7 @@ const StaffList = () => {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search educators by name or position..."
+              placeholder="Search staff by name or position..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-field pl-10"
@@ -304,15 +313,15 @@ const StaffList = () => {
           <Card>
             <div className="text-center py-12">
               <FiUser className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No educators found</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by adding a new educator.</p>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No staff found</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by adding a new staff member.</p>
               {user?.role === 'admin' && (
                 <div className="mt-6">
                   <Button icon={FiPlus} onClick={() => {
                     resetForm();
                     setShowAddModal(true);
                   }}>
-                    Add New Educator
+                    Add New Staff Member
                   </Button>
                 </div>
               )}
@@ -331,8 +340,8 @@ const StaffList = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${positionBadgeColor(staffMember.position)}`}>
                         {staffMember.position}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor(staffMember.employmentStatus)}`}>
-                        {staffMember.employmentStatus}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${staffMember.user?.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {staffMember.user?.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                   </div>
@@ -344,12 +353,23 @@ const StaffList = () => {
                       >
                         <FiEdit2 className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(staffMember._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      {staffMember.user?.isActive ? (
+                        <button
+                          onClick={() => handleDeactivate(staffMember._id, staffMember.user?._id)}
+                          className="text-red-600 hover:text-red-700"
+                          title="Deactivate"
+                        >
+                          <FiUserMinus className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleActivate(staffMember.user?._id)}
+                          className="text-green-600 hover:text-green-700"
+                          title="Activate"
+                        >
+                          <FiUserCheck className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -390,7 +410,7 @@ const StaffList = () => {
             setShowAddModal(false);
             resetForm();
           }}
-          title={editingStaff ? 'Edit Educator' : 'Add New Educator'}
+          title={editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
           size="lg"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -637,7 +657,7 @@ const StaffList = () => {
                 Cancel
               </Button>
               <Button type="submit" variant="primary">
-                {editingStaff ? 'Update Educator' : 'Add Educator'}
+                {editingStaff ? 'Update Staff Member' : 'Add Staff Member'}
               </Button>
             </div>
           </form>

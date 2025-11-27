@@ -122,7 +122,7 @@ const AttendanceList = () => {
   const canMarkAttendance = user?.role === 'admin' || user?.role === 'staff';
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

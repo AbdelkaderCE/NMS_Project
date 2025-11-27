@@ -5,7 +5,7 @@ import { dashboardAPI } from '../../api';
 import { FiUsers, FiDollarSign, FiActivity, FiMail, FiCalendar } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
-const ParentDashboard = () => {
+const ParentDashboard = ({ onSearchClick }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,7 @@ const ParentDashboard = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout onSearchClick={onSearchClick}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>

@@ -51,6 +51,9 @@ export const createActivity = async (req, res, next) => {
     if (!staffProfile) {
       return sendError(res, 400, 'Staff profile is required. Only staff members can log activities.');
     }
+    if (staffProfile.position !== 'teacher') {
+      return sendError(res, 403, 'Only staff with position "teacher" can log activities');
+    }
 
     // Create activity
     const activity = await Activity.create({

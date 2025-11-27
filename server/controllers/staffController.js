@@ -47,7 +47,16 @@ export const createStaff = async (req, res, next) => {
       ...otherData,
     });
 
-    await staff.populate('user', 'firstName lastName email phone avatar');
+    await staff.populate('user', 'firstName lastName email phone avatar isActive');
+
+    // Log audit trail
+    req.audit?.log({
+      action: 'CREATE',
+      resourceType: 'Staff',
+      resourceId: staff._id,
+      resourceName: `${staff.user.firstName} ${staff.user.lastName}`,
+      description: `Created staff profile for ${staff.user.firstName} ${staff.user.lastName} (${position})`,
+    });
 
     sendSuccess(res, 201, 'Staff profile created successfully', staff);
   } catch (error) {
@@ -90,7 +99,7 @@ export const getAllStaff = async (req, res, next) => {
     const totalItems = await Staff.countDocuments(query);
 
     const staff = await Staff.find(query)
-      .populate('user', 'firstName lastName email phone avatar')
+      .populate('user', 'firstName lastName email phone avatar isActive')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -157,11 +166,14 @@ export const getStaffByUserId = async (req, res, next) => {
  */
 export const updateStaff = async (req, res, next) => {
   try {
-    let staff = await Staff.findById(req.params.id);
+    let staff = await Staff.findById(req.params.id).populate('user', 'firstName lastName isActive');
 
     if (!staff) {
       return sendError(res, 404, 'Staff not found');
     }
+
+    // Get changes for audit log
+    const changes = req.audit?.getChanges(staff.toObject(), req.body);
 
     // If updating employee ID, check if it's unique
     if (req.body.employeeId && req.body.employeeId !== staff.employeeId) {
@@ -174,7 +186,17 @@ export const updateStaff = async (req, res, next) => {
     staff = await Staff.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    }).populate('user', 'firstName lastName email phone avatar');
+    }).populate('user', 'firstName lastName email phone avatar isActive');
+
+    // Log audit trail
+    req.audit?.log({
+      action: 'UPDATE',
+      resourceType: 'Staff',
+      resourceId: staff._id,
+      resourceName: `${staff.user.firstName} ${staff.user.lastName}`,
+      description: `Updated staff profile for ${staff.user.firstName} ${staff.user.lastName}`,
+      changes,
+    });
 
     sendSuccess(res, 200, 'Staff updated successfully', staff);
   } catch (error) {
@@ -189,13 +211,22 @@ export const updateStaff = async (req, res, next) => {
  */
 export const deleteStaff = async (req, res, next) => {
   try {
-    const staff = await Staff.findById(req.params.id);
+    const staff = await Staff.findById(req.params.id).populate('user', 'firstName lastName isActive');
 
     if (!staff) {
       return sendError(res, 404, 'Staff not found');
     }
 
     await staff.deleteOne();
+
+    // Log audit trail
+    req.audit?.log({
+      action: 'DELETE',
+      resourceType: 'Staff',
+      resourceId: staff._id,
+      resourceName: `${staff.user.firstName} ${staff.user.lastName}`,
+      description: `Deleted staff profile for ${staff.user.firstName} ${staff.user.lastName}`,
+    });
 
     sendSuccess(res, 200, 'Staff deleted successfully');
   } catch (error) {
@@ -366,11 +397,16 @@ export const addPerformanceRating = async (req, res, next) => {
  */
 export const terminateStaff = async (req, res, next) => {
   try {
-    const staff = await Staff.findById(req.params.id);
+    const staff = await Staff.findById(req.params.id).populate('user', 'firstName lastName isActive');
 
     if (!staff) {
       return sendError(res, 404, 'Staff not found');
     }
+
+    const changes = {
+      before: { isActive: staff.isActive, terminationDate: staff.terminationDate },
+      after: { isActive: false, terminationDate: new Date(), terminationReason: req.body.reason || '' }
+    };
 
     staff.isActive = false;
     staff.terminationDate = new Date();
@@ -380,6 +416,16 @@ export const terminateStaff = async (req, res, next) => {
 
     // Deactivate user account
     await User.findByIdAndUpdate(staff.user, { isActive: false });
+
+    // Log audit trail
+    req.audit?.log({
+      action: 'DEACTIVATE',
+      resourceType: 'Staff',
+      resourceId: staff._id,
+      resourceName: `${staff.user.firstName} ${staff.user.lastName}`,
+      description: `Terminated staff member ${staff.user.firstName} ${staff.user.lastName}`,
+      changes,
+    });
 
     sendSuccess(res, 200, 'Staff terminated successfully', staff);
   } catch (error) {
@@ -394,11 +440,16 @@ export const terminateStaff = async (req, res, next) => {
  */
 export const reactivateStaff = async (req, res, next) => {
   try {
-    const staff = await Staff.findById(req.params.id);
+    const staff = await Staff.findById(req.params.id).populate('user', 'firstName lastName isActive');
 
     if (!staff) {
       return sendError(res, 404, 'Staff not found');
     }
+
+    const changes = {
+      before: { isActive: staff.isActive, terminationDate: staff.terminationDate },
+      after: { isActive: true, terminationDate: null, terminationReason: '' }
+    };
 
     staff.isActive = true;
     staff.terminationDate = null;
@@ -408,6 +459,16 @@ export const reactivateStaff = async (req, res, next) => {
 
     // Reactivate user account
     await User.findByIdAndUpdate(staff.user, { isActive: true });
+
+    // Log audit trail
+    req.audit?.log({
+      action: 'ACTIVATE',
+      resourceType: 'Staff',
+      resourceId: staff._id,
+      resourceName: `${staff.user.firstName} ${staff.user.lastName}`,
+      description: `Reactivated staff member ${staff.user.firstName} ${staff.user.lastName}`,
+      changes,
+    });
 
     sendSuccess(res, 200, 'Staff reactivated successfully', staff);
   } catch (error) {

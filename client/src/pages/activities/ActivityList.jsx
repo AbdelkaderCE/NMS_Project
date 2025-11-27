@@ -8,7 +8,7 @@ import Modal from '../../components/common/Modal';
 import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
 
-const ActivityList = () => {
+const ActivityList = ({ onSearchClick }) => {
   const [activities, setActivities] = useState([]);
   const [children, setChildren] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -251,7 +251,7 @@ const ActivityList = () => {
   };
 
   if (loading) return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="flex justify-center items-center h-64">
         <Loading />
       </div>
@@ -259,7 +259,7 @@ const ActivityList = () => {
   );
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {alert && (
           <Alert

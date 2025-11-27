@@ -11,6 +11,7 @@ import {
   getPaymentStats,
   getPaymentsByChild,
   getPaymentsByParent,
+  downloadInvoicePDF,
 } from '../controllers/paymentController.js';
 import {
   createPaymentValidation,
@@ -62,6 +63,14 @@ router.get(
   parentIdValidation,
   validate,
   getPaymentsByParent
+);
+
+// Download invoice PDF
+router.get(
+  '/:id/pdf',
+  paymentIdValidation,
+  validate,
+  downloadInvoicePDF
 );
 
 // Mark as paid and refund

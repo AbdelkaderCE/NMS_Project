@@ -122,7 +122,7 @@ const ActivityCalendar = () => {
   };
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 

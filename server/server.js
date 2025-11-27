@@ -152,6 +152,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Cookie Parser
 app.use(cookieParser());
 
+// Audit Logging Middleware (must be before routes)
+import { auditMiddleware } from './utils/auditLogger.js';
+app.use(auditMiddleware);
+
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -197,6 +201,12 @@ import activityRoutes from './routes/activityRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import enrollmentRequestRoutes from './routes/enrollmentRequestRoutes.js';
+import auditLogRoutes from './routes/auditLogRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
+import cron from 'node-cron';
+import Payment from './models/Payment.js';
+import { PAYMENT_STATUS } from './utils/constants.js';
+import { sendOverduePaymentReminder } from './utils/emailService.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/children', childrenRoutes);
@@ -209,6 +219,33 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/enrollment-requests', enrollmentRequestRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/search', searchRoutes);
+
+// ================= Overdue Payment Reminder Cron =================
+// Runs daily at 08:00 server time
+cron.schedule('0 8 * * *', async () => {
+  try {
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const overdue = await Payment.find({
+      status: PAYMENT_STATUS.PENDING,
+      dueDate: { $lt: now },
+      reminderSent: false,
+    }).populate('parent', 'email firstName lastName');
+    for (const payment of overdue) {
+      await sendOverduePaymentReminder(payment);
+      payment.reminderSent = true;
+      payment.reminderDate = new Date();
+      await payment.save();
+    }
+    if (overdue.length) {
+      console.log(`[Cron] Sent ${overdue.length} overdue payment reminder(s).`);
+    }
+  } catch (e) {
+    console.error('[Cron] Overdue reminder job failed:', e.message);
+  }
+});
 
 // ==================== ERROR HANDLING ====================
 

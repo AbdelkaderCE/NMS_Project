@@ -41,6 +41,15 @@ export const createChild = async (req, res, next) => {
       { path: 'assignedGroup', select: 'name maxCapacity' },
     ]);
 
+    // Audit log
+    await req.audit?.log({
+      action: 'CREATE',
+      resourceType: 'Child',
+      resourceId: child._id,
+      resourceName: `${child.firstName} ${child.lastName}`,
+      description: `Created child profile for ${child.firstName} ${child.lastName}`,
+    });
+
     sendSuccess(res, 201, 'Child created successfully', child);
   } catch (error) {
     next(error);
@@ -166,6 +175,15 @@ export const updateChild = async (req, res, next) => {
       runValidators: true,
     }).populate('parents.parent', 'firstName lastName email phone');
 
+    // Audit log
+    await req.audit?.log({
+      action: 'UPDATE',
+      resourceType: 'Child',
+      resourceId: child._id,
+      resourceName: `${child.firstName} ${child.lastName}`,
+      description: `Updated child profile for ${child.firstName} ${child.lastName}`,
+    });
+
     sendSuccess(res, 200, 'Child updated successfully', child);
   } catch (error) {
     next(error);
@@ -186,6 +204,15 @@ export const deleteChild = async (req, res, next) => {
     }
 
     await child.deleteOne();
+
+    // Audit log
+    await req.audit?.log({
+      action: 'DELETE',
+      resourceType: 'Child',
+      resourceId: child._id,
+      resourceName: `${child.firstName} ${child.lastName}`,
+      description: `Deleted child profile for ${child.firstName} ${child.lastName}`,
+    });
 
     sendSuccess(res, 200, 'Child deleted successfully');
   } catch (error) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiMail, FiPhone, FiUser, FiKey } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiUserMinus, FiUserCheck, FiSearch, FiMail, FiPhone, FiUser, FiKey } from 'react-icons/fi';
 import { userAPI, authAPI } from '../../api';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -8,7 +8,7 @@ import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
 import Layout from '../../components/layout/Layout';
 
-const ParentList = () => {
+const ParentList = ({ onSearchClick }) => {
   const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -75,16 +75,27 @@ const ParentList = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this parent account?')) return;
+  const handleDeactivate = async (id) => {
+    if (!window.confirm('Deactivate this parent account? They will not be able to log in.')) return;
 
     try {
-      // Note: You may need to add a delete user endpoint in the backend
-      setAlert({ type: 'success', message: 'Parent deleted successfully!' });
+      await userAPI.deactivate(id);
+      setAlert({ type: 'success', message: 'Parent deactivated successfully!' });
       fetchParents();
     } catch (error) {
-      console.error('Error deleting parent:', error);
-      setAlert({ type: 'error', message: 'Failed to delete parent' });
+      console.error('Error deactivating parent:', error);
+      setAlert({ type: 'error', message: error.response?.data?.message || 'Failed to deactivate parent' });
+    }
+  };
+
+  const handleActivate = async (id) => {
+    try {
+      await userAPI.activate(id);
+      setAlert({ type: 'success', message: 'Parent activated successfully!' });
+      fetchParents();
+    } catch (error) {
+      console.error('Error activating parent:', error);
+      setAlert({ type: 'error', message: error.response?.data?.message || 'Failed to activate parent' });
     }
   };
 
@@ -212,10 +223,15 @@ const ParentList = () => {
                       <h3 className="text-lg font-semibold text-gray-800">
                         {parent.firstName} {parent.lastName}
                       </h3>
-                      <span className="text-xs text-gray-500">Parent</span>
+                      <div className="flex gap-2 mt-1">
+                        <span className="text-xs text-gray-500">Parent</span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${parent.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {parent.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                    <div className="flex space-x-2 items-center">
                     <button
                       onClick={() => handleResetPassword(parent)}
                       className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50"
@@ -230,20 +246,23 @@ const ParentList = () => {
                     >
                       <FiEdit2 size={18} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(parent._id)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Edit"
-                    >
-                      <FiEdit2 />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(parent._id)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete (Not implemented)"
-                    >
-                      <FiTrash2 />
-                    </button>
+                    {parent.isActive ? (
+                      <button
+                        onClick={() => handleDeactivate(parent._id)}
+                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
+                        title="Deactivate"
+                      >
+                        <FiUserMinus size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleActivate(parent._id)}
+                        className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50"
+                        title="Activate"
+                      >
+                        <FiUserCheck size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -175,7 +175,7 @@ const ClassList = () => {
   );
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {alert && (
           <Alert

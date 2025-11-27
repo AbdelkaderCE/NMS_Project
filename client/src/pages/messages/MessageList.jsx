@@ -7,7 +7,7 @@ import Modal from '../../components/common/Modal';
 import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
 
-const MessageList = () => {
+const MessageList = ({ onSearchClick }) => {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -179,8 +179,8 @@ const MessageList = () => {
   };
 
   return (
-    <Layout>
-    <div className="space-y-6">
+    <Layout onSearchClick={onSearchClick}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

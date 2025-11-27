@@ -1,4 +1,4 @@
-import { Class, Group, Child } from '../models/index.js';
+import { Class, Group, Child, Staff } from '../models/index.js';
 import { sendSuccess, sendError } from '../utils/responseHandler.js';
 
 /**
@@ -8,6 +8,14 @@ import { sendSuccess, sendError } from '../utils/responseHandler.js';
  */
 export const createClass = async (req, res, next) => {
   try {
+    // Validate any provided instructors (if client ever sends for default group) are teachers
+    if (req.body.instructors && req.body.instructors.length > 0) {
+      const teachers = await Staff.find({ _id: { $in: req.body.instructors }, position: 'teacher' }).select('_id');
+      if (teachers.length !== req.body.instructors.length) {
+        return sendError(res, 400, 'All instructors must have position "teacher"');
+      }
+    }
+
     const classData = await Class.create(req.body);
     
     // Automatically create a default group for this class
@@ -15,7 +23,7 @@ export const createClass = async (req, res, next) => {
       name: `${classData.name} - Group A`,
       class: classData._id,
       maxCapacity: 15,
-      instructors: [], // optional initial empty list
+      instructors: [], // start empty; only teachers can be added later
       schedule: {
         days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
         startTime: '08:00',

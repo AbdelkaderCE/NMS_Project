@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -19,12 +20,34 @@ import ChatView from './pages/messages/ChatView';
 import LandingPage from './pages/public/LandingPage';
 import PublicEnrollmentForm from './pages/public/PublicEnrollmentForm';
 import EnrollmentRequestList from './pages/enrollment/EnrollmentRequestList';
+import AuditLogList from './pages/audit/AuditLogList';
+import SearchModal from './components/search/SearchModal';
 
 function App() {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Global keyboard shortcut for search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSearchClick = () => {
+    setIsSearchOpen(true);
+  };
+
   return (
     <AuthProvider>
       <SocketProvider>
         <Router>
+        <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -36,7 +59,7 @@ function App() {
             path="/dashboard"
             element={
               <PrivateRoute>
-                <Dashboard />
+                <Dashboard onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -44,7 +67,7 @@ function App() {
             path="/children"
             element={
               <PrivateRoute>
-                <ChildrenList />
+                <ChildrenList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -52,7 +75,7 @@ function App() {
             path="/staff"
             element={
               <PrivateRoute allowedRoles={['admin']}>
-                <StaffList />
+                <StaffList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -60,7 +83,7 @@ function App() {
             path="/parents"
             element={
               <PrivateRoute allowedRoles={['admin', 'staff']}>
-                <ParentList />
+                <ParentList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -68,15 +91,15 @@ function App() {
             path="/attendance"
             element={
               <PrivateRoute>
-                <AttendanceList />
+                <AttendanceList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
           <Route
             path="/payments"
             element={
-              <PrivateRoute>
-                <PaymentList />
+              <PrivateRoute allowedRoles={['admin','parent']}>
+                <PaymentList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -84,7 +107,7 @@ function App() {
             path="/activities"
             element={
               <PrivateRoute>
-                <ActivityList />
+                <ActivityList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -92,7 +115,7 @@ function App() {
             path="/activities/calendar"
             element={
               <PrivateRoute>
-                <ActivityCalendar />
+                <ActivityCalendar onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -100,7 +123,7 @@ function App() {
             path="/classes"
             element={
               <PrivateRoute>
-                <ClassList />
+                <ClassList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -108,7 +131,7 @@ function App() {
             path="/groups"
             element={
               <PrivateRoute>
-                <GroupList />
+                <GroupList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -116,7 +139,7 @@ function App() {
             path="/messages"
             element={
               <PrivateRoute>
-                <MessageList />
+                <MessageList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -124,7 +147,7 @@ function App() {
             path="/chat"
             element={
               <PrivateRoute>
-                <ChatView />
+                <ChatView onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -132,7 +155,15 @@ function App() {
             path="/enrollment/requests"
             element={
               <PrivateRoute allowedRoles={['admin', 'staff']}>
-                <EnrollmentRequestList />
+                <EnrollmentRequestList onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/audit-logs"
+            element={
+              <PrivateRoute allowedRoles={['admin']}>
+                <AuditLogList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />

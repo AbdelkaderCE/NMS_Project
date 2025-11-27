@@ -12,7 +12,8 @@ import {
   FiGrid,
   FiLayers,
   FiMessageCircle,
-  FiFileText
+  FiFileText,
+  FiShield
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -24,16 +25,17 @@ const Sidebar = () => {
     { name: 'Dashboard', href: '/dashboard', icon: FiHome, roles: ['admin', 'staff', 'parent'] },
     { name: 'Children', href: '/children', icon: FiUsers, roles: ['admin', 'staff', 'parent'] },
     { name: 'Parents', href: '/parents', icon: FiUsers, roles: ['admin', 'staff'] },
-    { name: 'Educators', href: '/staff', icon: FiUserCheck, roles: ['admin'] },
+    { name: 'Staff', href: '/staff', icon: FiUserCheck, roles: ['admin'] },
     { name: 'Classes', href: '/classes', icon: FiGrid, roles: ['admin', 'staff'] },
     { name: 'Groups', href: '/groups', icon: FiLayers, roles: ['admin', 'staff'] },
     { name: 'Attendance', href: '/attendance', icon: FiCalendar, roles: ['admin', 'staff'] },
-    { name: 'Payments', href: '/payments', icon: FiDollarSign, roles: ['admin', 'staff', 'parent'] },
+    { name: 'Payments', href: '/payments', icon: FiDollarSign, roles: ['admin', 'parent'] },
     { name: 'Activities', href: '/activities', icon: FiActivity, roles: ['admin', 'staff'] },
     { name: 'Calendar', href: '/activities/calendar', icon: FiCalendar, roles: ['admin', 'staff', 'parent'] },
     { name: 'Messages', href: '/messages', icon: FiMail, roles: ['admin', 'staff', 'parent'] },
     { name: 'Chat', href: '/chat', icon: FiMessageCircle, roles: ['admin', 'staff', 'parent'] },
     { name: 'Enrollment Requests', href: '/enrollment/requests', icon: FiFileText, roles: ['admin', 'staff'] },
+    { name: 'Audit Logs', href: '/audit-logs', icon: FiShield, roles: ['admin'] },
   ];
 
   const filteredNavigation = navigation.filter(item => 

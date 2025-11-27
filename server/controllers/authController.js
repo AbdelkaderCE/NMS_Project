@@ -426,17 +426,63 @@ export const deleteUser = async (req, res, next) => {
       }
     }
 
-    // Staff cascade: remove from groups instructors arrays and delete staff profile
+    // Staff updates: remove from groups instructors arrays and mark staff profile inactive
     if (user.role === 'staff') {
       const { default: Group } = await import('../models/Group.js');
       const { default: Staff } = await import('../models/Staff.js');
       await Group.updateMany({ instructors: user._id }, { $pull: { instructors: user._id } });
-      await Staff.deleteOne({ user: user._id });
+      await Staff.updateOne({ user: user._id }, { $set: { employmentStatus: 'inactive' } });
     }
 
-    // Finally delete user
-    await user.deleteOne();
-    sendSuccess(res, 200, 'User deleted successfully');
+    // Soft delete: deactivate user instead of removing record
+    user.isActive = false;
+    await user.save({ validateBeforeSave: false });
+
+    // Audit log
+    await req.audit?.log({
+      action: 'DEACTIVATE',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceName: `${user.firstName} ${user.lastName}`,
+      description: `Deactivated user account for ${user.firstName} ${user.lastName} (${user.role})`,
+    });
+
+    sendSuccess(res, 200, 'User deactivated successfully', { userId: user._id, isActive: user.isActive });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reactivate a user
+ * @route   PUT /api/auth/users/:id/activate
+ * @access  Private (Admin, Staff)
+ */
+export const activateUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+    user.isActive = true;
+    await user.save({ validateBeforeSave: false });
+
+    // If staff, set employmentStatus active
+    if (user.role === 'staff') {
+      const { default: Staff } = await import('../models/Staff.js');
+      await Staff.updateOne({ user: user._id }, { $set: { employmentStatus: 'active' } });
+    }
+
+    // Audit log
+    await req.audit?.log({
+      action: 'ACTIVATE',
+      resourceType: 'User',
+      resourceId: user._id,
+      resourceName: `${user.firstName} ${user.lastName}`,
+      description: `Activated user account for ${user.firstName} ${user.lastName} (${user.role})`,
+    });
+
+    sendSuccess(res, 200, 'User activated successfully', { userId: user._id, isActive: user.isActive });
   } catch (error) {
     next(error);
   }

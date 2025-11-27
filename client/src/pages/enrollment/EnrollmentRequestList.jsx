@@ -3,7 +3,7 @@ import { enrollmentRequestAPI } from '../../api';
 import Layout from '../../components/layout/Layout';
 import { FiCheckCircle, FiClock, FiXCircle, FiEye } from 'react-icons/fi';
 
-const EnrollmentRequestList = () => {
+const EnrollmentRequestList = ({ onSearchClick }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');

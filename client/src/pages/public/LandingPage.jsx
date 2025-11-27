@@ -70,7 +70,7 @@ const LandingPage = () => {
               <FiCheckCircle className="h-8 w-8" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">Licensed & Certified</h3>
-            <p className="mt-2 text-gray-600">Fully licensed facility with certified educators</p>
+            <p className="mt-2 text-gray-600">Fully licensed facility with certified staff</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-lg text-center">

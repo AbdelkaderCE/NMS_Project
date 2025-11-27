@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, onSearchClick }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -35,7 +35,11 @@ const Layout = ({ children }) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+        <Navbar 
+          onMenuClick={toggleSidebar} 
+          isSidebarOpen={isSidebarOpen}
+          onSearchClick={onSearchClick}
+        />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}

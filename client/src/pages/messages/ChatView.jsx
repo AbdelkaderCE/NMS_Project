@@ -9,7 +9,7 @@ import Input from '../../components/common/Input';
 import Alert from '../../components/common/Alert';
 import Loading from '../../components/common/Loading';
 
-const ChatView = () => {
+const ChatView = ({ onSearchClick }) => {
   const { user } = useAuth();
   const { socket, connected, onlineUsers, emitTyping, emitStopTyping } = useSocket();
   const [users, setUsers] = useState([]);
@@ -179,7 +179,7 @@ const ChatView = () => {
   }
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
         <div>

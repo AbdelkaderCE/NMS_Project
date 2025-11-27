@@ -16,11 +16,11 @@ export const createGroup = async (req, res, next) => {
       return sendError(res, 404, 'Class not found');
     }
 
-    // Validate instructors exist
+    // Validate instructors exist and are teachers
     if (instructors && instructors.length > 0) {
-      const staffCount = await Staff.countDocuments({ _id: { $in: instructors } });
-      if (staffCount !== instructors.length) {
-        return sendError(res, 400, 'One or more instructors not found');
+      const teachers = await Staff.find({ _id: { $in: instructors }, position: 'teacher' }).select('_id');
+      if (teachers.length !== instructors.length) {
+        return sendError(res, 400, 'All instructors must be staff with position "teacher"');
       }
     }
 
@@ -116,11 +116,11 @@ export const updateGroup = async (req, res, next) => {
   try {
     const { instructors } = req.body;
 
-    // Validate instructors if provided
+    // Validate instructors if provided and ensure they are teachers
     if (instructors && instructors.length > 0) {
-      const staffCount = await Staff.countDocuments({ _id: { $in: instructors } });
-      if (staffCount !== instructors.length) {
-        return sendError(res, 400, 'One or more instructors not found');
+      const teachers = await Staff.find({ _id: { $in: instructors }, position: 'teacher' }).select('_id');
+      if (teachers.length !== instructors.length) {
+        return sendError(res, 400, 'All instructors must be staff with position "teacher"');
       }
     }
 

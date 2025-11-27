@@ -77,7 +77,7 @@ The backend automatically splits the `name` field into `firstName` and `lastName
 3. ✅ Authentication system working
 4. ✅ Test accounts created for all roles
 5. ✅ Children Management module complete (full CRUD operations)
-6. ✅ Staff/Educators Management module complete (Admin only)
+6. ✅ Staff Management module complete (Admin only)
 7. ✅ Attendance tracking module complete (Check-in/Check-out, Daily view)
 8. 🔄 Next: Build Payments module
 9. 🔄 Next: Build Activities scheduling module

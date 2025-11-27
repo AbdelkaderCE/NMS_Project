@@ -18,6 +18,8 @@ export const userAPI = {
   getAll: (params) => api.get('/auth/users', { params }),
   getByRole: (role) => api.get('/auth/users', { params: { role } }),
   update: (id, data) => api.put(`/auth/users/${id}`, data),
+  deactivate: (id) => api.delete(`/auth/users/${id}`),
+  activate: (id) => api.put(`/auth/users/${id}/activate`),
 };
 
 // Children APIs
@@ -78,6 +80,12 @@ export const paymentAPI = {
   getStats: (params) => api.get('/payments/stats', { params }),
   getByChild: (childId) => api.get(`/payments/child/${childId}`),
   getByParent: (parentId) => api.get(`/payments/parent/${parentId}`),
+  downloadPDF: (id) => {
+    const token = localStorage.getItem('token');
+    return fetch(`${api.defaults.baseURL}/payments/${id}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 };
 
 // Activity APIs
@@ -156,4 +164,17 @@ export const enrollmentRequestAPI = {
   accept: (id, data) => api.post(`/enrollment-requests/${id}/accept`, data),
   reject: (id, data) => api.post(`/enrollment-requests/${id}/reject`, data),
   delete: (id) => api.delete(`/enrollment-requests/${id}`),
+};
+
+// Audit Log APIs (Admin only)
+export const auditLogAPI = {
+  getAll: (params) => api.get('/audit-logs', { params }),
+  getStats: () => api.get('/audit-logs/stats'),
+  getByResource: (resourceType, resourceId, params) => api.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params }),
+  getByUser: (userId, params) => api.get(`/audit-logs/user/${userId}`, { params }),
+};
+
+// Search API
+export const searchAPI = {
+  search: (q, limit = 10) => api.get('/search', { params: { q, limit } })
 };
