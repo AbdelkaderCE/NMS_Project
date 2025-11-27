@@ -1,7 +1,18 @@
 # Universal Search Implementation
 
 ## Overview
-A comprehensive search system inspired by macOS Spotlight that allows users to search across all entities in the NMS application with keyboard shortcuts, fuzzy matching, and real-time results.
+A comprehensive search system inspired by macOS Spotlight that allows users to search across all entities **AND navigate to any page** in the NMS application with keyboard shortcuts, fuzzy matching, and real-time results.
+
+## ✨ New Feature: Page Navigation
+
+You can now search for pages/sections in the app! Just type keywords like:
+- "**dash**" → Dashboard
+- "**invoice**" or "**billing**" → Payments
+- "**kids**" → Children Management  
+- "**chat**" → Real-Time Chat
+- "**teachers**" → Staff Management
+
+Each page has smart keywords, so you don't need to remember exact names. The search automatically filters pages based on your role (admin/staff/parent).
 
 ## Features Implemented
 
@@ -175,6 +186,46 @@ const results = response.data.results;
 - Role-based result filtering at query level
 - Parents can only search their own children/payments
 - Query validation prevents empty/short searches
+- **Pages filtered by user role** - Each role only sees pages they have access to
+
+## Page Navigation Feature 🆕
+
+The search now includes **quick navigation to any page** in the app! This makes it easy to jump to different sections without using the sidebar.
+
+### Available Pages by Role
+
+**Admin (14 pages):**
+Dashboard, Children Management, Staff Management, Parents, Attendance, Payments, Activities, Activity Calendar, Classes, Groups, Messages, Real-Time Chat, Enrollment Requests, Audit Logs
+
+**Staff (11 pages):**
+Dashboard, Children Management, Parents, Attendance, Activities, Activity Calendar, Classes, Groups, Messages, Real-Time Chat, Enrollment Requests
+
+**Parent (5 pages):**
+Dashboard, Children Management, Payments, Messages, Real-Time Chat
+
+### Smart Page Search with Keywords
+
+Each page has multiple keywords for easier discovery:
+- **Dashboard**: home, overview, summary
+- **Children Management**: kids, students, child
+- **Staff Management**: employees, teachers, workers
+- **Payments**: invoices, billing, fees, tuition
+- **Activities**: events, schedule, tasks
+- **Attendance**: check-in, check-out, presence
+- **Messages**: inbox, communication, notifications
+- **Real-Time Chat**: messaging, live chat, conversation
+- **And more...**
+
+### Example Page Searches
+```
+Type "home" → Dashboard
+Type "invoice" → Payments  
+Type "kids" → Children Management
+Type "chat" → Real-Time Chat
+Type "billing" → Payments
+Type "teachers" → Staff Management (admin only)
+Type "tracking" → Audit Logs (admin only)
+```
 
 ## Future Enhancements
 1. **Entity Detail Routes**: Implement `/entity/{id}` routes for direct navigation
