@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { activityAPI, childrenAPI } from '../../api';
@@ -23,7 +24,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const ActivityCalendar = () => {
+const ActivityCalendar = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [children, setChildren] = useState([]);
@@ -34,11 +35,18 @@ const ActivityCalendar = () => {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'parent') {
+    if (user?.role === 'parent' && children.length === 0) {
       fetchChildren();
     }
-    fetchActivities();
-  }, [selectedChild]);
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'parent' && children.length > 0) {
+      fetchActivities();
+    } else if (user?.role !== 'parent') {
+      fetchActivities();
+    }
+  }, [selectedChild, children]);
 
   const fetchChildren = async () => {
     try {

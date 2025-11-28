@@ -24,7 +24,8 @@ import {
   resetPasswordValidation,
 } from '../validators/authValidators.js';
 import { validate } from '../middleware/validate.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
+import { allowStaffPositions } from '../middleware/staffPosition.js';
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.use(protect); // All routes below this will require authentication
 
 router.post('/logout', logout);
 router.get('/me', getMe);
-router.get('/users', getUsers);
+router.get('/users', authorize('admin', 'staff'), allowStaffPositions('manager', 'receptionist'), getUsers);
 router.put('/users/:id', updateUser);
 router.put('/profile', updateProfileValidation, validate, updateProfile);
 router.put('/password', updatePasswordValidation, validate, updatePassword);

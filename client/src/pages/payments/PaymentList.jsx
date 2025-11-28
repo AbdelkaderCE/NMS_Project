@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FiPlus, FiSearch, FiDollarSign, FiCreditCard, FiDownload, FiTrash2, FiCheck, FiAlertCircle, FiClock } from 'react-icons/fi';
 import { paymentAPI, userAPI } from '../../api';
 import { childrenAPI } from '../../api';
@@ -10,7 +11,8 @@ import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
 import { useAuth } from '../../context/AuthContext';
 
-const PaymentList = () => {
+const PaymentList = ({ onSearchClick }) => {
+  const location = useLocation();
   const [payments, setPayments] = useState([]);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,15 @@ const PaymentList = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowInvoiceModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchData = async () => {
     try {

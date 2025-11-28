@@ -74,7 +74,7 @@ export const login = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Generate token and send response
-    sendTokenResponse(user, 200, res, 'Login successful');
+    await sendTokenResponse(user, 200, res, 'Login successful');
   } catch (error) {
     next(error);
   }
@@ -105,9 +105,15 @@ export const logout = async (req, res, next) => {
  */
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    // req.user already has staffInfo attached by protect middleware
+    const userObj = req.user.toObject ? req.user.toObject() : { ...req.user };
+    
+    // If staffInfo exists, include it in the response
+    if (req.user.staffInfo) {
+      userObj.staffInfo = req.user.staffInfo.toObject ? req.user.staffInfo.toObject() : req.user.staffInfo;
+    }
 
-    sendSuccess(res, 200, 'User retrieved successfully', user);
+    sendSuccess(res, 200, 'User retrieved successfully', userObj);
   } catch (error) {
     next(error);
   }
@@ -223,7 +229,7 @@ export const updatePassword = async (req, res, next) => {
     user.password = newPassword;
     await user.save();
 
-    sendTokenResponse(user, 200, res, 'Password updated successfully');
+    await sendTokenResponse(user, 200, res, 'Password updated successfully');
   } catch (error) {
     next(error);
   }
@@ -300,7 +306,7 @@ export const resetPassword = async (req, res, next) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    sendTokenResponse(user, 200, res, 'Password reset successful');
+    await sendTokenResponse(user, 200, res, 'Password reset successful');
   } catch (error) {
     next(error);
   }
@@ -309,7 +315,7 @@ export const resetPassword = async (req, res, next) => {
 /**
  * Helper function to get token from model, create cookie and send response
  */
-const sendTokenResponse = (user, statusCode, res, message) => {
+const sendTokenResponse = async (user, statusCode, res, message) => {
   // Create token
   const token = user.getSignedJwtToken();
 
@@ -325,6 +331,20 @@ const sendTokenResponse = (user, statusCode, res, message) => {
   // Remove password from output
   user.password = undefined;
 
+  // If user is staff, fetch their position
+  let userObj = user.toObject();
+  if (user.role === 'staff') {
+    try {
+      const { default: Staff } = await import('../models/Staff.js');
+      const staffRecord = await Staff.findOne({ user: user._id }).select('position');
+      if (staffRecord) {
+        userObj.position = staffRecord.position;
+      }
+    } catch (error) {
+      console.error('Error fetching staff position:', error);
+    }
+  }
+
   res
     .status(statusCode)
     .cookie('token', token, options)
@@ -333,7 +353,7 @@ const sendTokenResponse = (user, statusCode, res, message) => {
       message,
       data: {
         token,
-        user,
+        user: userObj,
       },
     });
 };

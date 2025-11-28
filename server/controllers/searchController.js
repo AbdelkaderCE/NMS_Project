@@ -65,32 +65,41 @@ export const universalSearch = async (req, res, next) => {
       attendance: [],
     };
 
-    // Role-based access control
+    // Role/Position-based access control
     const isAdmin = req.user.role === ROLES.ADMIN;
     const isStaff = req.user.role === ROLES.STAFF;
     const isParent = req.user.role === ROLES.PARENT;
+    const staffPosition = req.user?.staffInfo?.position;
+    const isTeacherOrAssistant = isStaff && (staffPosition === 'teacher' || staffPosition === 'assistant');
+    const isManagerOrReceptionist = isStaff && (staffPosition === 'manager' || staffPosition === 'receptionist');
 
     // Search App Pages/Navigation
     const allPages = [
-      { name: 'Dashboard', route: '/dashboard', roles: ['admin', 'staff', 'parent'], icon: 'home', keywords: ['home', 'overview', 'summary'] },
-      { name: 'Children Management', route: '/children', roles: ['admin', 'staff', 'parent'], icon: 'users', keywords: ['kids', 'students', 'child'] },
-      { name: 'Staff Management', route: '/staff', roles: ['admin'], icon: 'briefcase', keywords: ['employees', 'teachers', 'workers'] },
-      { name: 'Parents', route: '/parents', roles: ['admin', 'staff'], icon: 'users', keywords: ['guardians', 'families'] },
-      { name: 'Attendance', route: '/attendance', roles: ['admin', 'staff'], icon: 'calendar', keywords: ['check-in', 'check-out', 'presence'] },
-      { name: 'Payments', route: '/payments', roles: ['admin', 'parent'], icon: 'dollar-sign', keywords: ['invoices', 'billing', 'fees', 'tuition'] },
-      { name: 'Activities', route: '/activities', roles: ['admin', 'staff'], icon: 'activity', keywords: ['events', 'schedule', 'tasks'] },
-      { name: 'Activity Calendar', route: '/activities/calendar', roles: ['admin', 'staff'], icon: 'calendar', keywords: ['events calendar', 'schedule view'] },
-      { name: 'Classes', route: '/classes', roles: ['admin', 'staff'], icon: 'book', keywords: ['rooms', 'age groups'] },
-      { name: 'Groups', route: '/groups', roles: ['admin', 'staff'], icon: 'grid', keywords: ['teams', 'cohorts'] },
-      { name: 'Messages', route: '/messages', roles: ['admin', 'staff', 'parent'], icon: 'mail', keywords: ['inbox', 'communication', 'notifications'] },
-      { name: 'Real-Time Chat', route: '/chat', roles: ['admin', 'staff', 'parent'], icon: 'message-circle', keywords: ['messaging', 'live chat', 'conversation'] },
-      { name: 'Enrollment Requests', route: '/enrollment/requests', roles: ['admin', 'staff'], icon: 'user-plus', keywords: ['applications', 'new students', 'registrations'] },
-      { name: 'Audit Logs', route: '/audit-logs', roles: ['admin'], icon: 'list', keywords: ['history', 'changes', 'activity log', 'tracking'] }
+      { name: 'Dashboard', route: '/dashboard', roles: ['admin', 'staff', 'parent'], positions: ['teacher','assistant','manager','receptionist','nurse'], icon: 'home', keywords: ['home', 'overview', 'summary'] },
+      { name: 'Children Management', route: '/children', roles: ['admin', 'staff', 'parent'], positions: ['manager','receptionist','teacher','assistant'], icon: 'users', keywords: ['kids', 'students', 'child'] },
+      { name: 'Staff Management', route: '/staff', roles: ['admin'], positions: [], icon: 'briefcase', keywords: ['employees', 'teachers', 'workers'] },
+      { name: 'Parents', route: '/parents', roles: ['admin', 'staff'], positions: ['manager','receptionist'], icon: 'users', keywords: ['guardians', 'families'] },
+      { name: 'Attendance', route: '/attendance', roles: ['admin', 'staff'], positions: ['teacher','assistant','manager'], icon: 'calendar', keywords: ['check-in', 'check-out', 'presence'] },
+      { name: 'Payments', route: '/payments', roles: ['admin', 'parent'], positions: [], icon: 'dollar-sign', keywords: ['invoices', 'billing', 'fees', 'tuition'] },
+      { name: 'Activities', route: '/activities', roles: ['admin', 'staff'], positions: ['teacher','assistant','manager'], icon: 'activity', keywords: ['events', 'schedule', 'tasks'] },
+      { name: 'Activity Calendar', route: '/activities/calendar', roles: ['admin', 'staff'], positions: ['teacher','assistant','manager'], icon: 'calendar', keywords: ['events calendar', 'schedule view'] },
+      { name: 'Classes', route: '/classes', roles: ['admin', 'staff'], positions: ['manager','teacher','assistant'], icon: 'book', keywords: ['rooms', 'age groups'] },
+      { name: 'Groups', route: '/groups', roles: ['admin', 'staff'], positions: ['manager','teacher','assistant'], icon: 'grid', keywords: ['teams', 'cohorts'] },
+      { name: 'Messages', route: '/messages', roles: ['admin', 'staff', 'parent'], positions: ['teacher','assistant','manager','receptionist','nurse'], icon: 'mail', keywords: ['inbox', 'communication'] },
+      { name: 'Real-Time Chat', route: '/chat', roles: ['admin', 'staff', 'parent'], positions: ['teacher','assistant','manager','receptionist','nurse'], icon: 'message-circle', keywords: ['messaging', 'live chat', 'conversation'] },
+      { name: 'Notifications', route: '/notifications', roles: ['admin', 'staff', 'parent'], positions: ['teacher','assistant','manager','receptionist','nurse'], icon: 'bell', keywords: ['alerts', 'updates', 'news'] },
+      { name: 'Enrollment Requests', route: '/enrollment/requests', roles: ['admin', 'staff'], positions: ['manager','receptionist'], icon: 'user-plus', keywords: ['applications', 'new students', 'registrations'] },
+      { name: 'Audit Logs', route: '/audit-logs', roles: ['admin'], positions: [], icon: 'list', keywords: ['history', 'changes', 'activity log', 'tracking'] }
     ];
 
     // Filter pages by role and score them
     results.pages = allPages
-      .filter(page => page.roles.includes(req.user.role))
+      .filter(page => {
+        if (!page.roles.includes(req.user.role)) return false;
+        if (req.user.role !== ROLES.STAFF) return true;
+        // If positions specified, restrict staff by position
+        return !page.positions || page.positions.length === 0 || (staffPosition && page.positions.includes(staffPosition));
+      })
       .map(page => {
         // Calculate score based on name and keywords
         let score = fuzzyScore(page.name, query);
@@ -126,6 +135,22 @@ export const universalSearch = async (req, res, next) => {
       if (isParent) {
         childQuery['parents.parent'] = req.user.id;
       }
+
+      // Staff position restrictions
+      if (isStaff) {
+        if (isTeacherOrAssistant) {
+          const assignedGroups = req.user?.staffInfo?.assignedClasses || [];
+          if (assignedGroups.length === 0) {
+            // No access to any children
+            results.children = [];
+          } else {
+            childQuery['assignedGroup'] = { $in: assignedGroups };
+          }
+        } else if (!isManagerOrReceptionist) {
+          // Other staff (e.g., nurse) should not see parent/children pages via search
+          results.parents = [];
+        }
+      }
       
       const children = await Child.find(childQuery)
         .populate('assignedClass', 'name')
@@ -147,7 +172,7 @@ export const universalSearch = async (req, res, next) => {
     }
 
     // Search Parents (Admin/Staff only)
-    if (isAdmin || isStaff) {
+    if (isAdmin || (isStaff && isManagerOrReceptionist)) {
       const parents = await User.find({
         role: ROLES.PARENT,
         $or: [

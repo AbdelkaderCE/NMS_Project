@@ -7,7 +7,10 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
 import ChildrenList from './pages/children/ChildrenList';
+import ChildEnrollmentForm from './pages/children/ChildEnrollmentForm';
+import ChildProfile from './pages/children/ChildProfile';
 import StaffList from './pages/staff/StaffList';
+import StaffProfile from './pages/staff/StaffProfile';
 import AttendanceList from './pages/attendance/AttendanceList';
 import PaymentList from './pages/payments/PaymentList';
 import ParentList from './pages/parents/ParentList';
@@ -21,6 +24,8 @@ import LandingPage from './pages/public/LandingPage';
 import PublicEnrollmentForm from './pages/public/PublicEnrollmentForm';
 import EnrollmentRequestList from './pages/enrollment/EnrollmentRequestList';
 import AuditLogList from './pages/audit/AuditLogList';
+import NotificationsPage from './pages/notifications/NotificationsPage';
+import UserProfile from './pages/profile/UserProfile';
 import SearchModal from './components/search/SearchModal';
 
 function App() {
@@ -72,6 +77,22 @@ function App() {
             }
           />
           <Route
+            path="/children/enroll"
+            element={
+              <PrivateRoute allowedRoles={['parent']}>
+                <ChildEnrollmentForm onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/children/:id"
+            element={
+              <PrivateRoute>
+                <ChildProfile onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/staff"
             element={
               <PrivateRoute allowedRoles={['admin']}>
@@ -80,9 +101,17 @@ function App() {
             }
           />
           <Route
+            path="/staff/:id"
+            element={
+              <PrivateRoute allowedRoles={['admin']}>
+                <StaffProfile onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/parents"
             element={
-              <PrivateRoute allowedRoles={['admin', 'staff']}>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager', 'receptionist']}>
                 <ParentList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -90,7 +119,7 @@ function App() {
           <Route
             path="/attendance"
             element={
-              <PrivateRoute>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['teacher', 'assistant']}>
                 <AttendanceList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -98,7 +127,7 @@ function App() {
           <Route
             path="/payments"
             element={
-              <PrivateRoute allowedRoles={['admin','parent']}>
+              <PrivateRoute allowedRoles={['admin','parent', 'staff']} allowedPositions={['receptionist']}>
                 <PaymentList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -106,7 +135,7 @@ function App() {
           <Route
             path="/activities"
             element={
-              <PrivateRoute>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['teacher', 'assistant', 'manager']}>
                 <ActivityList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -122,7 +151,7 @@ function App() {
           <Route
             path="/classes"
             element={
-              <PrivateRoute>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager']}>
                 <ClassList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -130,7 +159,7 @@ function App() {
           <Route
             path="/groups"
             element={
-              <PrivateRoute>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager']}>
                 <GroupList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -140,6 +169,14 @@ function App() {
             element={
               <PrivateRoute>
                 <MessageList onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <NotificationsPage onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />
@@ -154,7 +191,7 @@ function App() {
           <Route
             path="/enrollment/requests"
             element={
-              <PrivateRoute allowedRoles={['admin', 'staff']}>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager', 'receptionist']}>
                 <EnrollmentRequestList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -164,6 +201,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['admin']}>
                 <AuditLogList onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile/:id"
+            element={
+              <PrivateRoute>
+                <UserProfile onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />

@@ -23,6 +23,7 @@ import {
   contactIdValidation,
 } from '../validators/childrenValidators.js';
 import { validate } from '../middleware/validate.js';
+import { allowStaffPositions } from '../middleware/staffPosition.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { ROLES } from '../utils/constants.js';
 
@@ -52,6 +53,8 @@ router
   .get(getChildren) // Parents see only their children
   .post(
     authorize(ROLES.ADMIN, ROLES.STAFF),
+    // For staff, restrict to manager or receptionist positions only
+    allowStaffPositions('manager', 'receptionist'),
     createChildValidation,
     validate,
     createChild
@@ -62,12 +65,14 @@ router
   .get(childIdValidation, validate, getChildById) // Parents can view their own children
   .put(
     authorize(ROLES.ADMIN, ROLES.STAFF),
+    allowStaffPositions('manager', 'receptionist'),
     updateChildValidation,
     validate,
     updateChild
   )
   .delete(
-    authorize(ROLES.ADMIN),
+    authorize(ROLES.ADMIN, ROLES.STAFF),
+    allowStaffPositions('manager', 'receptionist'),
     childIdValidation,
     validate,
     deleteChild

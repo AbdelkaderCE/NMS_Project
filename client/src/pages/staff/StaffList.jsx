@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -11,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const StaffList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +44,15 @@ const StaffList = ({ onSearchClick }) => {
   useEffect(() => {
     fetchStaff();
   }, []);
+
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchStaff = async () => {
     try {
@@ -250,9 +261,8 @@ const StaffList = ({ onSearchClick }) => {
       'teacher': 'bg-blue-100 text-blue-800',
       'assistant': 'bg-green-100 text-green-800',
       'manager': 'bg-purple-100 text-purple-800',
-      'cook': 'bg-orange-100 text-orange-800',
       'nurse': 'bg-pink-100 text-pink-800',
-      'janitor': 'bg-gray-100 text-gray-800',
+      'receptionist': 'bg-orange-100 text-orange-800',
     };
     return colors[position] || 'bg-gray-100 text-gray-800';
   };
@@ -347,6 +357,13 @@ const StaffList = ({ onSearchClick }) => {
                   </div>
                   {user?.role === 'admin' && (
                     <div className="flex space-x-2">
+                      <Link
+                        to={`/staff/${staffMember._id}`}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="View Profile"
+                      >
+                        <FiUser className="h-4 w-4" />
+                      </Link>
                       <button
                         onClick={() => handleEdit(staffMember)}
                         className="text-primary-600 hover:text-primary-700"
@@ -500,12 +517,12 @@ const StaffList = ({ onSearchClick }) => {
                   required
                   className="input-field"
                 >
+                  <option value="">Select Position</option>
                   <option value="teacher">Teacher</option>
-                  <option value="assistant">Assistant</option>
+                  <option value="assistant">Assistant Teacher</option>
                   <option value="manager">Manager</option>
-                  <option value="cook">Cook</option>
                   <option value="nurse">Nurse</option>
-                  <option value="janitor">Janitor</option>
+                  <option value="receptionist">Receptionist</option>
                 </select>
               </div>
 

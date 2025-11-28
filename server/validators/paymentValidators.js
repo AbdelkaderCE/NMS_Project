@@ -170,7 +170,11 @@ export const paymentQueryValidation = [
   
   query('status')
     .optional()
-    .isIn(Object.values(PAYMENT_STATUS))
+    .custom((value) => {
+      // Skip validation for empty strings (from axios empty arrays)
+      if (value === '' || value === null || value === undefined) return true;
+      return Object.values(PAYMENT_STATUS).includes(value);
+    })
     .withMessage(`Status must be one of: ${Object.values(PAYMENT_STATUS).join(', ')}`),
   
   query('type')

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Staff from '../models/Staff.js';
 import ErrorResponse from '../utils/errorResponse.js';
 import { sendError } from '../utils/responseHandler.js';
 
@@ -40,6 +41,16 @@ export const protect = async (req, res, next) => {
     // Check if user is active
     if (!req.user.isActive) {
       return sendError(res, 401, 'User account is deactivated');
+    }
+
+    // Attach staff info with position and assignedClasses for staff users
+    if (req.user.role === 'staff') {
+      const staffInfo = await Staff.findOne({ user: req.user._id })
+        .select('position assignedClasses firstName lastName employeeId');
+      
+      if (staffInfo) {
+        req.user.staffInfo = staffInfo;
+      }
     }
 
     next();

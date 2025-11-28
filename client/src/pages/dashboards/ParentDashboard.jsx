@@ -47,9 +47,17 @@ const ParentDashboard = ({ onSearchClick }) => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
-          <p className="text-gray-600 mt-1">Monitor your children's progress and activities</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
+            <p className="text-gray-600 mt-1">Monitor your children's progress and activities</p>
+          </div>
+          <Link to="/children/enroll">
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+              <FiUsers className="h-5 w-5" />
+              Register New Child
+            </button>
+          </Link>
         </div>
 
         {/* Stats Grid */}
@@ -105,7 +113,7 @@ const ParentDashboard = ({ onSearchClick }) => {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500">No children registered yet</p>
-                <Link to="/children/new" className="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
+                <Link to="/children/enroll" className="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
                   Register your child →
                 </Link>
               </div>

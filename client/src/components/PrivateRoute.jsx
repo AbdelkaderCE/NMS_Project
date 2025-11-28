@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const PrivateRoute = ({ children, allowedRoles = [] }) => {
+const PrivateRoute = ({ children, allowedRoles = [], allowedPositions = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
@@ -18,6 +18,14 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Check position-based access for staff members
+  if (allowedPositions.length > 0 && user?.role === 'staff') {
+    const userPosition = user?.staffInfo?.position;
+    if (!userPosition || !allowedPositions.includes(userPosition)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;

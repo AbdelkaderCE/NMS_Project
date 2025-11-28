@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -7,19 +8,30 @@ import { attendanceAPI, childrenAPI } from '../../api';
 import { FiCalendar, FiCheck, FiX, FiClock, FiFilter } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
-const AttendanceList = () => {
+const AttendanceList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [filterChild, setFilterChild] = useState('');
   const [alert, setAlert] = useState(null);
+  const [showMarkAttendanceModal, setShowMarkAttendanceModal] = useState(false);
 
   useEffect(() => {
     fetchChildren();
     fetchAttendance();
   }, [selectedDate, filterChild]);
+
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowMarkAttendanceModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchChildren = async () => {
     try {

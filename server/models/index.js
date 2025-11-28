@@ -12,3 +12,4 @@ export { default as MedicalRecord } from './MedicalRecord.js';
 export { default as Document } from './Document.js';
 export { default as EnrollmentRequest } from './EnrollmentRequest.js';
 export { default as AuditLog } from './AuditLog.js';
+export { default as Notification } from './Notification.js';

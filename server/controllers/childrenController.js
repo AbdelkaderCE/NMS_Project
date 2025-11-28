@@ -73,6 +73,43 @@ export const getChildren = async (req, res, next) => {
       query['parents.parent'] = req.user.id;
     }
 
+    // If user is staff, check their position and apply filters
+    if (req.user.role === 'staff') {
+      // If staff doesn't have staffInfo, deny access (old accounts without Staff record)
+      if (!req.user.staffInfo) {
+        return sendPaginatedResponse(res, 200, 'No access - staff profile not found', [], {
+          page,
+          limit,
+          totalPages: 0,
+          totalItems: 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        });
+      }
+      
+      const position = req.user.staffInfo.position;
+      
+      // Teachers and assistants only see children in their assigned groups
+      if (position === 'teacher' || position === 'assistant') {
+        const assignedGroups = req.user.staffInfo.assignedClasses || [];
+        
+        if (assignedGroups.length > 0) {
+          query.assignedGroup = { $in: assignedGroups };
+        } else {
+          // If no groups assigned, show nothing
+          return sendPaginatedResponse(res, 200, 'No children found', [], {
+            page,
+            limit,
+            totalPages: 0,
+            totalItems: 0,
+            hasNextPage: false,
+            hasPrevPage: false
+          });
+        }
+      }
+      // Manager, nurse, receptionist see all children (or filtered by other rules)
+    }
+
     // Filter by status
     if (status) {
       query.status = status;

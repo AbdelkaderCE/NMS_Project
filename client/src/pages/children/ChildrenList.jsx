@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -10,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const ChildrenList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [children, setChildren] = useState([]);
   const [parents, setParents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -49,6 +51,15 @@ const ChildrenList = ({ onSearchClick }) => {
     fetchParents();
     fetchClasses();
   }, []);
+
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchChildren = async () => {
     try {
@@ -347,7 +358,8 @@ const ChildrenList = ({ onSearchClick }) => {
             <h1 className="text-2xl font-bold text-gray-900">Children Management</h1>
             <p className="text-gray-600 mt-1">{children.length} children registered</p>
           </div>
-          {(user?.role === 'admin' || user?.role === 'staff') && (
+          {/* Only admin and manager can add children - teachers/assistants can only view */}
+          {(user?.role === 'admin' || (user?.role === 'staff' && ['manager', 'receptionist'].includes(user?.staffInfo?.position))) && (
             <Button icon={FiPlus} onClick={() => {
               resetForm();
               setShowAddModal(true);
@@ -425,22 +437,31 @@ const ChildrenList = ({ onSearchClick }) => {
                       )}
                     </div>
                   </div>
-                  {(user?.role === 'admin' || user?.role === 'staff') && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(child)}
-                        className="text-primary-600 hover:text-primary-700"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(child._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex space-x-2">
+                    <Link
+                      to={`/children/${child._id}`}
+                      className="text-blue-600 hover:text-blue-700"
+                      title="View Profile"
+                    >
+                      <FiUser className="h-4 w-4" />
+                    </Link>
+                    {(user?.role === 'admin' || user?.role === 'staff') && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(child)}
+                          className="text-primary-600 hover:text-primary-700"
+                        >
+                          <FiEdit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(child._id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm">

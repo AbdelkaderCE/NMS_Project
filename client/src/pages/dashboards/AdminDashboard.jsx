@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import { dashboardAPI } from '../../api';
-import { FiUsers, FiUserCheck, FiCalendar, FiDollarSign, FiActivity, FiMail, FiTrendingUp } from 'react-icons/fi';
+import { FiUsers, FiUserCheck, FiCalendar, FiDollarSign, FiActivity, FiMail, FiTrendingUp, FiUserPlus, FiBriefcase, FiCheckSquare, FiCreditCard } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { paymentAPI } from '../../api';
 import {
@@ -18,10 +18,11 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminDashboard = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [paymentStats, setPaymentStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,7 @@ const AdminDashboard = ({ onSearchClick }) => {
   }
 
   return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -139,27 +140,66 @@ const AdminDashboard = ({ onSearchClick }) => {
         </div>
 
         {/* Quick Actions */}
-        <Card title="Quick Actions">
+        <Card>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            <p className="text-sm text-gray-500 mt-1">Common tasks to get you started</p>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Link to="/children/new" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <h3 className="font-semibold text-gray-900">Add New Child</h3>
-              <p className="text-sm text-gray-500 mt-1">Register a new child</p>
-            </Link>
+            <button
+              onClick={() => navigate('/children', { state: { openAddModal: true } })}
+              className="group p-5 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <FiUserPlus className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Add New Child</h3>
+              <p className="text-sm text-gray-500">Register a new child in the system</p>
+            </button>
+
             {user?.role === 'admin' && (
-              <Link to="/staff/new" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <h3 className="font-semibold text-gray-900">Add Staff Member</h3>
-                <p className="text-sm text-gray-500 mt-1">Register new staff member</p>
-              </Link>
+              <button
+                onClick={() => navigate('/staff', { state: { openAddModal: true } })}
+                className="group p-5 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all duration-200 text-left"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                    <FiBriefcase className="h-5 w-5 text-green-600" />
+                  </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">Add Staff Member</h3>
+                <p className="text-sm text-gray-500">Register new staff member</p>
+              </button>
             )}
-            <Link to="/attendance/mark" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <h3 className="font-semibold text-gray-900">Mark Attendance</h3>
-              <p className="text-sm text-gray-500 mt-1">Record today's attendance</p>
-            </Link>
+
+            <button
+              onClick={() => navigate('/attendance', { state: { openAddModal: true } })}
+              className="group p-5 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 text-left"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                  <FiCheckSquare className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Mark Attendance</h3>
+              <p className="text-sm text-gray-500">Record today's attendance</p>
+            </button>
+
             {user?.role === 'admin' && (
-              <Link to="/payments/new" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <h3 className="font-semibold text-gray-900">Record Payment</h3>
-                <p className="text-sm text-gray-500 mt-1">Add payment record</p>
-              </Link>
+              <button
+                onClick={() => navigate('/payments', { state: { openAddModal: true } })}
+                className="group p-5 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all duration-200 text-left"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-yellow-100 rounded-lg group-hover:bg-yellow-200 transition-colors">
+                    <FiCreditCard className="h-5 w-5 text-yellow-600" />
+                  </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">Create Payment</h3>
+                <p className="text-sm text-gray-500">Generate new invoice</p>
+              </button>
             )}
           </div>
         </Card>
@@ -211,8 +251,8 @@ const AdminDashboard = ({ onSearchClick }) => {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card title="Revenue History (Last 12 Months)" subtitle="Paid invoices trend">
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-64 w-full" style={{ minHeight: '256px' }}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={256}>
                   <LineChart data={formatRevenue(paymentStats.revenueByMonth)} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis 
@@ -241,8 +281,8 @@ const AdminDashboard = ({ onSearchClick }) => {
               </div>
             </Card>
             <Card title="Invoices by Status" subtitle="Current period distribution">
-              <div className="h-64 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-64 w-full flex items-center justify-center" style={{ minHeight: '256px' }}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={256}>
                   <PieChart>
                     <Pie
                       data={formatStatus(paymentStats.byStatus)}

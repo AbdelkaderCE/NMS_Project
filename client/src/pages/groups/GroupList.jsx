@@ -10,7 +10,7 @@ import Loading from '../../components/common/Loading';
 import Modal from '../../components/common/Modal';
 import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiClock, FiUser } from 'react-icons/fi';
 
-const GroupList = () => {
+const GroupList = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -162,7 +162,7 @@ const GroupList = () => {
     : groups.filter(g => g.class?._id === classFilter);
 
   if (loading) return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="flex justify-center items-center h-64">
         <Loading />
       </div>

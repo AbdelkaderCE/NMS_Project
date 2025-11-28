@@ -17,6 +17,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [newNotification, setNewNotification] = useState(null);
 
   useEffect(() => {
     if (user && token) {
@@ -54,6 +55,12 @@ export const SocketProvider = ({ children }) => {
       newSocket.on('online-users', (users) => {
         console.log('👥 Online users updated:', users);
         setOnlineUsers(users);
+      });
+
+      // Listen for new notifications
+      newSocket.on('new-notification', (notification) => {
+        console.log('🔔 New notification received:', notification);
+        setNewNotification(notification);
       });
 
       setSocket(newSocket);
@@ -96,6 +103,7 @@ export const SocketProvider = ({ children }) => {
     socket,
     connected,
     onlineUsers,
+    newNotification,
     sendMessage,
     emitTyping,
     emitStopTyping,

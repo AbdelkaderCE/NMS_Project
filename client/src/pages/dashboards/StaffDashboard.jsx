@@ -4,8 +4,10 @@ import Card from '../../components/common/Card';
 import { dashboardAPI } from '../../api';
 import { FiUsers, FiCalendar, FiActivity, FiMail, FiCheckCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const StaffDashboard = ({ onSearchClick }) => {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -77,27 +79,35 @@ const StaffDashboard = ({ onSearchClick }) => {
         {/* Today's Tasks */}
         <Card title="Today's Tasks" subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}>
           <div className="space-y-4">
-            <Link to="/attendance/mark" className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center">
-                <FiCalendar className="h-5 w-5 text-purple-600 mr-3" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Mark Attendance</h3>
-                  <p className="text-sm text-gray-500">Record children's attendance for today</p>
+            {/* Only teachers and assistants can mark attendance */}
+            {(user?.staffInfo?.position === 'teacher' || user?.staffInfo?.position === 'assistant') && (
+              <Link to="/attendance/mark" className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center">
+                  <FiCalendar className="h-5 w-5 text-purple-600 mr-3" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Mark Attendance</h3>
+                    <p className="text-sm text-gray-500">Record children's attendance for today</p>
+                  </div>
                 </div>
-              </div>
-              <span className="text-purple-600 font-medium">Start →</span>
-            </Link>
+                <span className="text-purple-600 font-medium">Start →</span>
+              </Link>
+            )}
 
-            <Link to="/activities" className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center">
-                <FiActivity className="h-5 w-5 text-pink-600 mr-3" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">View Today's Activities</h3>
-                  <p className="text-sm text-gray-500">{stats?.todayActivities || 0} activities scheduled</p>
+            {/* Only teachers, assistants, and managers can view activities */}
+            {(user?.staffInfo?.position === 'teacher' || 
+              user?.staffInfo?.position === 'assistant' || 
+              user?.staffInfo?.position === 'manager') && (
+              <Link to="/activities" className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex items-center">
+                  <FiActivity className="h-5 w-5 text-pink-600 mr-3" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">View Today's Activities</h3>
+                    <p className="text-sm text-gray-500">{stats?.todayActivities || 0} activities scheduled</p>
+                  </div>
                 </div>
-              </div>
-              <span className="text-pink-600 font-medium">View →</span>
-            </Link>
+                <span className="text-pink-600 font-medium">View →</span>
+              </Link>
+            )}
 
             <Link to="/messages" className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <div className="flex items-center">

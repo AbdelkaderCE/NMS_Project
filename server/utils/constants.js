@@ -69,10 +69,9 @@ export const PAYMENT_TYPES = {
 export const STAFF_POSITION = {
   TEACHER: 'teacher',
   ASSISTANT: 'assistant',
-  NURSE: 'nurse',
-  COOK: 'cook',
-  CLEANER: 'cleaner',
   MANAGER: 'manager',
+  NURSE: 'nurse',
+  RECEPTIONIST: 'receptionist',
 };
 
 /**

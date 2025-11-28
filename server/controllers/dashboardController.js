@@ -20,7 +20,7 @@ export const getDashboardOverview = async (req, res, next) => {
 
     // Total counts
     const totalChildren = await Child.countDocuments({ status: CHILD_STATUS.ACTIVE });
-    const totalStaff = await Staff.countDocuments({ employmentStatus: 'active' });
+    const totalStaff = await Staff.countDocuments({ isActive: true });
     const totalParents = await User.countDocuments({ role: ROLES.PARENT });
 
     // Today's attendance
@@ -326,12 +326,17 @@ export const getRevenueAnalytics = async (req, res, next) => {
       { $sort: { total: -1 } },
     ]);
 
-    // Monthly revenue trend
+    // Monthly revenue trend - use paidDate if available, otherwise createdAt
     const monthlyRevenue = await Payment.aggregate([
       { $match: { ...dateQuery, status: PAYMENT_STATUS.PAID } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$paidDate' } },
+          _id: { 
+            $dateToString: { 
+              format: '%Y-%m', 
+              date: { $ifNull: ['$paidDate', '$createdAt'] } 
+            } 
+          },
           revenue: { $sum: '$finalAmount' },
           count: { $sum: 1 },
         },
@@ -382,19 +387,19 @@ export const getStaffAnalytics = async (req, res, next) => {
   try {
     // Total staff by position
     const byPosition = await Staff.aggregate([
-      { $match: { employmentStatus: 'active' } },
+      { $match: { isActive: true } },
       { $group: { _id: '$position', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
 
     // Staff by employment status
     const byStatus = await Staff.aggregate([
-      { $group: { _id: '$employmentStatus', count: { $sum: 1 } } },
+      { $group: { _id: '$isActive', count: { $sum: 1 } } },
     ]);
 
     // Average salary by position
     const avgSalaryByPosition = await Staff.aggregate([
-      { $match: { employmentStatus: 'active' } },
+      { $match: { isActive: true } },
       {
         $group: {
           _id: '$position',
@@ -410,7 +415,7 @@ export const getStaffAnalytics = async (req, res, next) => {
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     const expiringCertifications = await Staff.aggregate([
-      { $match: { employmentStatus: 'active' } },
+      { $match: { isActive: true } },
       { $unwind: '$certifications' },
       {
         $match: {
@@ -610,7 +615,7 @@ export const getQuickStats = async (req, res, next) => {
     // Role-based stats
     if (req.user.role === ROLES.ADMIN || req.user.role === ROLES.STAFF) {
       stats.children = await Child.countDocuments({ status: CHILD_STATUS.ACTIVE });
-      stats.staff = await Staff.countDocuments({ employmentStatus: 'active' });
+      stats.staff = await Staff.countDocuments({ isActive: true });
       stats.todayAttendance = await Attendance.countDocuments({
         date: today,
         status: { $in: [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE] },
@@ -621,9 +626,51 @@ export const getQuickStats = async (req, res, next) => {
     }
 
     if (req.user.role === ROLES.PARENT) {
-      // Parent's children
-      const children = await Child.find({ 'parents.parent': req.user.id }).select('_id');
+      // Parent's children with detailed info
+      const children = await Child.find({ 'parents.parent': req.user.id })
+        .select('firstName lastName dateOfBirth photo classGroup status')
+        .populate('classGroup', 'name');
+      
       stats.myChildren = children.length;
+      stats.children = children.map(child => ({
+        _id: child._id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        age: child.dateOfBirth 
+          ? Math.floor((Date.now() - child.dateOfBirth.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : 0,
+        photo: child.photo,
+        classroom: child.classGroup?.name || 'Not assigned',
+        status: child.status
+      }));
+
+      // Calculate attendance rate for each child this month
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      for (let childData of stats.children) {
+        const totalDays = await Attendance.countDocuments({
+          child: childData._id,
+          date: { $gte: startOfMonth, $lte: endOfMonth }
+        });
+        
+        const presentDays = await Attendance.countDocuments({
+          child: childData._id,
+          date: { $gte: startOfMonth, $lte: endOfMonth },
+          status: { $in: [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE] }
+        });
+
+        // Only calculate if there are actual attendance records
+        childData.attendanceRate = totalDays > 0 
+          ? Math.round((presentDays / totalDays) * 100)
+          : 100; // Show 100% if no records yet
+
+        // Count activities participated
+        childData.activitiesCount = await Activity.countDocuments({
+          child: childData._id,
+          date: { $gte: startOfMonth, $lte: endOfMonth }
+        });
+      }
 
       // My children's attendance today
       stats.todayAttendance = await Attendance.countDocuments({
@@ -637,6 +684,48 @@ export const getQuickStats = async (req, res, next) => {
         parent: req.user.id,
         status: PAYMENT_STATUS.PENDING,
       });
+
+      // Payment summary for parent
+      // Total paid this month
+      const paidThisMonthResult = await Payment.aggregate([
+        {
+          $match: {
+            parent: req.user._id,
+            status: PAYMENT_STATUS.PAID,
+            paidDate: { $gte: startOfMonth, $lte: endOfMonth },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$finalAmount' } } },
+      ]);
+      stats.totalPaid = paidThisMonthResult.length > 0 ? paidThisMonthResult[0].total : 0;
+
+      // Pending amount
+      const pendingAmountResult = await Payment.aggregate([
+        {
+          $match: {
+            parent: req.user._id,
+            status: PAYMENT_STATUS.PENDING,
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$finalAmount' } } },
+      ]);
+      stats.pendingAmount = pendingAmountResult.length > 0 ? pendingAmountResult[0].total : 0;
+
+      // Next payment due
+      const nextPayment = await Payment.findOne({
+        parent: req.user.id,
+        status: PAYMENT_STATUS.PENDING,
+      })
+        .sort({ dueDate: 1 })
+        .select('dueDate');
+      
+      stats.nextPaymentDue = nextPayment 
+        ? new Date(nextPayment.dueDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })
+        : null;
     }
 
     // Common stats for all roles

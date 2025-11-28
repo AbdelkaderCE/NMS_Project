@@ -23,6 +23,7 @@ import {
 } from '../validators/attendanceValidators.js';
 import { validate } from '../middleware/validate.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { isTeacher } from '../middleware/teacherAuth.js';
 import { ROLES } from '../utils/constants.js';
 
 const router = express.Router();
@@ -78,7 +79,7 @@ router
     getAllAttendance
   ) // Parents see only their children's attendance
   .post(
-    authorize(ROLES.ADMIN, ROLES.STAFF),
+    isTeacher, // Only teachers and admin can create attendance
     createAttendanceValidation,
     validate,
     createAttendance
@@ -92,7 +93,7 @@ router
     getAttendanceById
   ) // Parents can view their own children's attendance
   .put(
-    authorize(ROLES.ADMIN, ROLES.STAFF),
+    isTeacher, // Only teachers and admin can update attendance
     updateAttendanceValidation,
     validate,
     updateAttendance
