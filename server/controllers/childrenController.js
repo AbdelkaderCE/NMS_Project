@@ -149,6 +149,37 @@ export const getChildren = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get children by parentId (explicit parameter)
+ * @route   GET /api/children/parent/:parentId
+ * @access  Private (Admin/Staff) or Parent (own children only)
+ */
+export const getChildrenByParent = async (req, res, next) => {
+  try {
+    const { page, limit, skip } = getPaginationParams(req.query);
+    const parentId = req.params.parentId;
+
+    // If requester is a parent, ensure they only access their own children
+    if (req.user.role === ROLES.PARENT && req.user.id !== parentId) {
+      return sendError(res, 403, 'Not authorized to view other parent\'s children');
+    }
+
+    const query = { 'parents.parent': parentId };
+    const totalItems = await Child.countDocuments(query);
+    const children = await Child.find(query)
+      .populate('parents.parent', 'firstName lastName email phone')
+      .populate('assignedClass', 'name ageRange color')
+      .populate('assignedGroup', 'name maxCapacity')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const pagination = buildPagination(page, limit, totalItems);
+    sendPaginatedResponse(res, 200, 'Children by parent retrieved successfully', children, pagination);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get single child by ID
  * @route   GET /api/children/:id
  * @access  Private (Admin, Staff) or Parent (own child only)

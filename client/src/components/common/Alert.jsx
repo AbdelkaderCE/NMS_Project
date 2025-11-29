@@ -3,29 +3,29 @@ import { FiCheckCircle, FiAlertCircle, FiInfo, FiX } from 'react-icons/fi';
 const Alert = ({ type = 'info', message, onClose, className = '' }) => {
   const types = {
     success: {
-      bg: 'bg-green-50',
-      border: 'border-green-200',
+      bg: 'backdrop-blur-sm bg-green-50/70',
+      border: 'border-green-200/40',
       text: 'text-green-800',
       icon: FiCheckCircle,
       iconColor: 'text-green-600',
     },
     error: {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      bg: 'backdrop-blur-sm bg-red-50/70',
+      border: 'border-red-200/40',
       text: 'text-red-800',
       icon: FiAlertCircle,
       iconColor: 'text-red-600',
     },
     warning: {
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-200',
-      text: 'text-yellow-800',
+      bg: 'backdrop-blur-sm bg-amber-50/70',
+      border: 'border-amber-200/40',
+      text: 'text-amber-800',
       icon: FiAlertCircle,
-      iconColor: 'text-yellow-600',
+      iconColor: 'text-amber-600',
     },
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      bg: 'backdrop-blur-sm bg-blue-50/70',
+      border: 'border-blue-200/40',
       text: 'text-blue-800',
       icon: FiInfo,
       iconColor: 'text-blue-600',
@@ -36,7 +36,7 @@ const Alert = ({ type = 'info', message, onClose, className = '' }) => {
   const Icon = config.icon;
 
   return (
-    <div className={`rounded-lg border p-4 ${config.bg} ${config.border} ${className}`}>
+    <div className={`rounded-lg border p-4 shadow-sm ${config.bg} ${config.border}`}>
       <div className="flex items-start">
         <Icon className={`h-5 w-5 ${config.iconColor} mt-0.5`} />
         <div className="ml-3 flex-1">

@@ -8,6 +8,7 @@ import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import { staffAPI, classAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
 
 const StaffProfile = ({ onSearchClick }) => {
   const { id } = useParams();
@@ -17,9 +18,10 @@ const StaffProfile = ({ onSearchClick }) => {
   const [loading, setLoading] = useState(true);
   const [assignedClasses, setAssignedClasses] = useState([]);
 
-  // Only admin can access staff profiles
+  // Allow admin or staff with manager position to access staff profiles
   useEffect(() => {
-    if (user?.role !== 'admin') {
+    const isManager = user?.role === 'staff' && user?.staffInfo?.position === 'manager';
+    if (!(user?.role === 'admin' || isManager)) {
       navigate('/dashboard');
       return;
     }
@@ -81,7 +83,7 @@ const StaffProfile = ({ onSearchClick }) => {
           </button>
           
           <Link to={`/staff/edit/${staff._id}`}>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg">
               <FiEdit2 className="h-5 w-5" />
               Edit Profile
             </button>
@@ -102,7 +104,7 @@ const StaffProfile = ({ onSearchClick }) => {
               ) : (
                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-blue-100">
                   <span className="text-4xl font-bold text-white">
-                    {staff.firstName?.charAt(0)}{staff.lastName?.charAt(0)}
+                    {(staff.firstName || staff.user?.firstName || 'N').charAt(0)}{(staff.lastName || staff.user?.lastName || '').charAt(0)}
                   </span>
                 </div>
               )}
@@ -113,7 +115,7 @@ const StaffProfile = ({ onSearchClick }) => {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {staff.firstName} {staff.lastName}
+                    {staff.firstName || staff.user?.firstName || 'N/A'} {staff.lastName || staff.user?.lastName || ''}
                   </h1>
                   <div className="flex items-center gap-4 mt-2 text-gray-600">
                     <span className="flex items-center gap-1 capitalize">
@@ -139,19 +141,19 @@ const StaffProfile = ({ onSearchClick }) => {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="bg-green-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-green-50/70 to-white/50 border border-green-200/30 rounded-lg p-4 hover:border-green-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Salary</p>
                       <p className="text-2xl font-bold text-green-600">
-                        ${(staff.salary?.amount || staff.salary || 0).toLocaleString()}
+                        {formatCurrency(staff.salary?.amount || staff.salary || 0)}
                       </p>
                     </div>
                     <FiDollarSign className="h-8 w-8 text-green-600" />
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-blue-50/70 to-white/50 border border-blue-200/30 rounded-lg p-4 hover:border-blue-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Classes</p>
@@ -161,7 +163,7 @@ const StaffProfile = ({ onSearchClick }) => {
                   </div>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-purple-50/70 to-white/50 border border-purple-200/30 rounded-lg p-4 hover:border-purple-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Qualifications</p>
@@ -192,7 +194,7 @@ const StaffProfile = ({ onSearchClick }) => {
                 <label className="text-sm font-medium text-gray-500">Phone</label>
                 <p className="text-gray-900 flex items-center gap-2">
                   <FiPhone className="h-4 w-4 text-gray-400" />
-                  {staff.phone || 'N/A'}
+                  {staff.phone || staff.user?.phone || 'N/A'}
                 </p>
               </div>
               {staff.address && (
@@ -246,7 +248,7 @@ const StaffProfile = ({ onSearchClick }) => {
               <div>
                 <label className="text-sm font-medium text-gray-500">Salary</label>
                 <p className="text-gray-900 font-semibold text-lg">
-                  ${(staff.salary?.amount || staff.salary || 0).toLocaleString()} / {staff.salary?.paymentFrequency || 'month'}
+                        {formatCurrency(staff.salary?.amount || staff.salary || 0)} / {staff.salary?.paymentFrequency || 'month'}
                 </p>
               </div>
               {staff.contract?.type && (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
-import { messageAPI, userAPI } from '../../api';
+import { messageAPI, contactsAPI } from '../../api';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -84,8 +84,8 @@ const ChatView = ({ onSearchClick }) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // Fetch all users (staff and parents) for chat
-      const response = await userAPI.getAll();
+      // Fetch role-aware contacts for chat
+      const response = await contactsAPI.getAll();
       const allUsers = response.data || [];
       // Filter out current user
       setUsers(allUsers.filter(u => u._id !== user._id));

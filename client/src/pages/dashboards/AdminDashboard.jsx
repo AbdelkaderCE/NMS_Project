@@ -106,14 +106,14 @@ const AdminDashboard = ({ onSearchClick }) => {
     <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between backdrop-blur-sm bg-white/40 border border-blue-200/30 rounded-xl p-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Administrator Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your nursery operations</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">Administrator Dashboard</h1>
+            <p className="text-blue-600/70 mt-1">Manage your nursery operations</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 bg-green-500/10 border border-green-200/30 rounded-lg px-4 py-2">
             <FiTrendingUp className="h-5 w-5 text-green-600" />
-            <span className="text-sm text-gray-600">All systems operational</span>
+            <span className="text-sm text-green-700">All systems operational</span>
           </div>
         </div>
 
@@ -148,57 +148,57 @@ const AdminDashboard = ({ onSearchClick }) => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <button
               onClick={() => navigate('/children', { state: { openAddModal: true } })}
-              className="group p-5 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left"
+              className="group p-5 backdrop-blur-sm bg-white/50 border-2 border-blue-200/40 rounded-lg hover:border-blue-400 hover:bg-blue-50/60 transition-all duration-200 text-left shadow-sm hover:shadow-md"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                <div className="p-2 bg-blue-100/60 rounded-lg group-hover:bg-blue-200/80 transition-colors">
                   <FiUserPlus className="h-5 w-5 text-blue-600" />
                 </div>
               </div>
               <h3 className="font-semibold text-gray-900 mb-1">Add New Child</h3>
-              <p className="text-sm text-gray-500">Register a new child in the system</p>
+              <p className="text-sm text-gray-600">Register a new child in the system</p>
             </button>
 
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/staff', { state: { openAddModal: true } })}
-                className="group p-5 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all duration-200 text-left"
+                className="group p-5 backdrop-blur-sm bg-white/50 border-2 border-green-200/40 rounded-lg hover:border-green-400 hover:bg-green-50/60 transition-all duration-200 text-left shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                  <div className="p-2 bg-green-100/60 rounded-lg group-hover:bg-green-200/80 transition-colors">
                     <FiBriefcase className="h-5 w-5 text-green-600" />
                   </div>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">Add Staff Member</h3>
-                <p className="text-sm text-gray-500">Register new staff member</p>
+                <p className="text-sm text-gray-600">Register new staff member</p>
               </button>
             )}
 
             <button
               onClick={() => navigate('/attendance', { state: { openAddModal: true } })}
-              className="group p-5 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 text-left"
+              className="group p-5 backdrop-blur-sm bg-white/50 border-2 border-purple-200/40 rounded-lg hover:border-purple-400 hover:bg-purple-50/60 transition-all duration-200 text-left shadow-sm hover:shadow-md"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                <div className="p-2 bg-purple-100/60 rounded-lg group-hover:bg-purple-200/80 transition-colors">
                   <FiCheckSquare className="h-5 w-5 text-purple-600" />
                 </div>
               </div>
               <h3 className="font-semibold text-gray-900 mb-1">Mark Attendance</h3>
-              <p className="text-sm text-gray-500">Record today's attendance</p>
+              <p className="text-sm text-gray-600">Record today's attendance</p>
             </button>
 
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/payments', { state: { openAddModal: true } })}
-                className="group p-5 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all duration-200 text-left"
+                className="group p-5 backdrop-blur-sm bg-white/50 border-2 border-amber-200/40 rounded-lg hover:border-amber-400 hover:bg-amber-50/60 transition-all duration-200 text-left shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-yellow-100 rounded-lg group-hover:bg-yellow-200 transition-colors">
-                    <FiCreditCard className="h-5 w-5 text-yellow-600" />
+                  <div className="p-2 bg-amber-100/60 rounded-lg group-hover:bg-amber-200/80 transition-colors">
+                    <FiCreditCard className="h-5 w-5 text-amber-600" />
                   </div>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">Create Payment</h3>
-                <p className="text-sm text-gray-500">Generate new invoice</p>
+                <p className="text-sm text-gray-600">Generate new invoice</p>
               </button>
             )}
           </div>
@@ -218,7 +218,7 @@ const AdminDashboard = ({ onSearchClick }) => {
                     type="date"
                     value={dateRange.startDate}
                     onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 backdrop-blur-sm bg-white/60 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
@@ -229,19 +229,19 @@ const AdminDashboard = ({ onSearchClick }) => {
                     type="date"
                     value={dateRange.endDate}
                     onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 backdrop-blur-sm bg-white/60 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleApplyDateFilter}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg"
                   >
                     Apply
                   </button>
                   <button
                     onClick={handleResetDateFilter}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="px-4 py-2 backdrop-blur-sm bg-white/60 border border-blue-200/40 text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium"
                   >
                     Reset
                   </button>
@@ -308,12 +308,12 @@ const AdminDashboard = ({ onSearchClick }) => {
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                 {formatStatus(paymentStats.byStatus).map(s => (
-                  <div key={s.status} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <div key={s.status} className="flex items-center justify-between backdrop-blur-sm bg-white/40 border border-blue-200/20 p-2 rounded-lg">
                     <span className="flex items-center">
                       <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: STATUS_COLORS[s.status] || '#94A3B8' }} />
-                      <span className="capitalize">{s.status}</span>
+                      <span className="capitalize text-gray-700">{s.status}</span>
                     </span>
-                    <span className="font-semibold">{s.count}</span>
+                    <span className="font-semibold text-gray-900">{s.count}</span>
                   </div>
                 ))}
               </div>
@@ -328,12 +328,12 @@ const AdminDashboard = ({ onSearchClick }) => {
             <div className="space-y-3">
               {stats?.recentChildren?.length > 0 ? (
                 stats.recentChildren.map((child) => (
-                  <div key={child._id} className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <div key={child._id} className="flex items-center justify-between py-2 border-b border-blue-200/20 last:border-0">
                     <div>
                       <p className="font-medium text-gray-900">{child.firstName} {child.lastName}</p>
-                      <p className="text-sm text-gray-500">Age: {child.age}</p>
+                      <p className="text-sm text-gray-600">Age: {child.age}</p>
                     </div>
-                    <Link to={`/children/${child._id}`} className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    <Link to={`/children/${child._id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">
                       View
                     </Link>
                   </div>
@@ -345,18 +345,18 @@ const AdminDashboard = ({ onSearchClick }) => {
           </Card>
 
           <Card title="Pending Actions">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2">
+          <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-blue-200/20">
                 <span className="text-gray-700">Pending payment confirmations</span>
-                <span className="font-semibold text-yellow-600">{stats?.pendingPayments || 0}</span>
+                <span className="font-semibold text-amber-600 bg-amber-50/50 px-3 py-1 rounded-lg">{stats?.pendingPayments || 0}</span>
               </div>
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between py-2 border-b border-blue-200/20">
                 <span className="text-gray-700">Unread messages</span>
-                <span className="font-semibold text-indigo-600">{stats?.unreadMessages || 0}</span>
+                <span className="font-semibold text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-lg">{stats?.unreadMessages || 0}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-gray-700">Upcoming activities</span>
-                <span className="font-semibold text-pink-600">{stats?.upcomingActivities || 0}</span>
+                <span className="font-semibold text-pink-600 bg-pink-50/50 px-3 py-1 rounded-lg">{stats?.upcomingActivities || 0}</span>
               </div>
             </div>
           </Card>

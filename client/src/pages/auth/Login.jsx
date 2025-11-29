@@ -37,25 +37,25 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 backdrop-blur-md bg-white/40 border border-white/60 rounded-3xl p-8 shadow-2xl">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Nursery Management System
+          <h2 className="mt-2 text-center text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
+            Little Stars Nursery
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
+          <p className="mt-3 text-center text-sm text-gray-700">
+            Staff & Admin Sign In
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
               </label>
               <input
@@ -64,14 +64,14 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="input-field rounded-t-md"
-                placeholder="Email address"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
@@ -80,8 +80,8 @@ const Login = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="input-field rounded-b-md"
-                placeholder="Password"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
               />
@@ -92,21 +92,24 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </div>
 
-          <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
-              Admin or Staff?{' '}
-              <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
+          <div className="text-center space-y-3 pt-4 border-t border-white/40">
+            <p className="text-sm text-gray-700">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-blue-600 hover:text-blue-700 font-semibold">
                 Register here
               </Link>
             </p>
-            <p className="text-xs text-gray-500">
-              Parents: Your account will be created by the administrator
+            <p className="text-xs text-gray-600">
+              For parent enrollment, visit our{' '}
+              <Link to="/" className="text-blue-600 hover:text-blue-700 font-semibold">
+                home page
+              </Link>
             </p>
           </div>
         </form>

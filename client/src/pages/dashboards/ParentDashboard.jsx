@@ -47,13 +47,13 @@ const ParentDashboard = ({ onSearchClick }) => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between backdrop-blur-sm bg-white/40 border border-blue-200/30 rounded-xl p-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
-            <p className="text-gray-600 mt-1">Monitor your children's progress and activities</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">Parent Dashboard</h1>
+            <p className="text-blue-600/70 mt-1">Monitor your children's progress and activities</p>
           </div>
           <Link to="/children/enroll">
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg">
               <FiUsers className="h-5 w-5" />
               Register New Child
             </button>
@@ -87,24 +87,24 @@ const ParentDashboard = ({ onSearchClick }) => {
           <div className="space-y-4">
             {stats?.children?.length > 0 ? (
               stats.children.map((child) => (
-                <div key={child._id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={child._id} className="p-4 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{child.firstName} {child.lastName}</h3>
-                      <p className="text-sm text-gray-500 mt-1">Age: {child.age} years • Class: {child.classroom || 'Not assigned'}</p>
+                      <p className="text-sm text-gray-600 mt-1">Age: {child.age} years • Class: {child.classroom || 'Not assigned'}</p>
                     </div>
-                    <Link to={`/children/${child._id}`} className="text-primary-600 hover:text-primary-700 font-medium">
+                    <Link to={`/children/${child._id}`} className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
                       View Details →
                     </Link>
                   </div>
                   
-                  <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-blue-200/20">
                     <div>
-                      <p className="text-xs text-gray-500">Attendance This Month</p>
+                      <p className="text-xs text-gray-600">Attendance This Month</p>
                       <p className="text-lg font-semibold text-green-600">{child.attendanceRate || 0}%</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Activities Participated</p>
+                      <p className="text-xs text-gray-600">Activities Participated</p>
                       <p className="text-lg font-semibold text-pink-600">{child.activitiesCount || 0}</p>
                     </div>
                   </div>
@@ -112,8 +112,8 @@ const ParentDashboard = ({ onSearchClick }) => {
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">No children registered yet</p>
-                <Link to="/children/enroll" className="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
+                <p className="text-gray-600">No children registered yet</p>
+                <Link to="/children/enroll" className="text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block transition-colors">
                   Register your child →
                 </Link>
               </div>
@@ -125,55 +125,55 @@ const ParentDashboard = ({ onSearchClick }) => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Quick Actions">
             <div className="space-y-3">
-              <Link to="/payments" className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Link to="/payments" className="flex items-center justify-between p-3 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
                 <div className="flex items-center">
-                  <FiDollarSign className="h-5 w-5 text-yellow-600 mr-3" />
+                  <FiDollarSign className="h-5 w-5 text-amber-600 mr-3" />
                   <span className="font-medium text-gray-900">View Payments</span>
                 </div>
-                <span className="text-sm text-gray-500">→</span>
+                <span className="text-sm text-gray-600">→</span>
               </Link>
 
-              <Link to="/activities/calendar" className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Link to="/activities/calendar" className="flex items-center justify-between p-3 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
                 <div className="flex items-center">
                   <FiActivity className="h-5 w-5 text-pink-600 mr-3" />
                   <span className="font-medium text-gray-900">View Activity Calendar</span>
                 </div>
-                <span className="text-sm text-gray-500">→</span>
+                <span className="text-sm text-gray-600">→</span>
               </Link>
 
-              <Link to="/messages" className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Link to="/messages" className="flex items-center justify-between p-3 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
                 <div className="flex items-center">
                   <FiMail className="h-5 w-5 text-indigo-600 mr-3" />
                   <span className="font-medium text-gray-900">Send Message</span>
                 </div>
-                <span className="text-sm text-gray-500">→</span>
+                <span className="text-sm text-gray-600">→</span>
               </Link>
 
-              <Link to="/attendance" className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Link to="/attendance" className="flex items-center justify-between p-3 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
                 <div className="flex items-center">
                   <FiCalendar className="h-5 w-5 text-purple-600 mr-3" />
                   <span className="font-medium text-gray-900">Attendance History</span>
                 </div>
-                <span className="text-sm text-gray-500">→</span>
+                <span className="text-sm text-gray-600">→</span>
               </Link>
             </div>
           </Card>
 
           <Card title="Payment Summary">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2 border-b border-blue-200/20">
                 <span className="text-gray-700">Total Paid This Month</span>
-                <span className="font-semibold text-green-600">${stats?.totalPaid || 0}</span>
+                <span className="font-semibold text-green-600 bg-green-50/50 px-3 py-1 rounded-lg">${stats?.totalPaid || 0}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2 border-b border-blue-200/20">
                 <span className="text-gray-700">Pending Amount</span>
-                <span className="font-semibold text-yellow-600">${stats?.pendingAmount || 0}</span>
+                <span className="font-semibold text-amber-600 bg-amber-50/50 px-3 py-1 rounded-lg">${stats?.pendingAmount || 0}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2 border-b border-blue-200/20">
                 <span className="text-gray-700">Next Payment Due</span>
                 <span className="font-semibold text-gray-900">{stats?.nextPaymentDue || 'N/A'}</span>
               </div>
-              <Link to="/payments" className="block text-center text-primary-600 hover:text-primary-700 font-medium pt-2 border-t border-gray-100">
+              <Link to="/payments" className="block text-center text-blue-600 hover:text-blue-700 font-medium pt-2 transition-colors">
                 View All Payments →
               </Link>
             </div>

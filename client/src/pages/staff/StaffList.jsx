@@ -9,6 +9,7 @@ import { staffAPI, userAPI } from '../../api';
 import api from '../../api/axios';
 import { FiPlus, FiEdit2, FiUserMinus, FiUserCheck, FiSearch, FiUser, FiPhone, FiMail } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
 
 const StaffList = ({ onSearchClick }) => {
   const { user } = useAuth();
@@ -285,7 +286,7 @@ const StaffList = ({ onSearchClick }) => {
             <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
             <p className="text-gray-600 mt-1">{staff.length} staff members registered</p>
           </div>
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
             <Button icon={FiPlus} onClick={() => {
               resetForm();
               setShowAddModal(true);
@@ -325,7 +326,7 @@ const StaffList = ({ onSearchClick }) => {
               <FiUser className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No staff found</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding a new staff member.</p>
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
                 <div className="mt-6">
                   <Button icon={FiPlus} onClick={() => {
                     resetForm();
@@ -355,7 +356,7 @@ const StaffList = ({ onSearchClick }) => {
                       </span>
                     </div>
                   </div>
-                  {user?.role === 'admin' && (
+                  {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
                     <div className="flex space-x-2">
                       <Link
                         to={`/staff/${staffMember._id}`}
@@ -411,7 +412,7 @@ const StaffList = ({ onSearchClick }) => {
                   )}
                   {staffMember.salary?.amount && (
                     <div className="text-gray-500">
-                      <span className="font-medium">Salary:</span> {staffMember.salary.currency} {staffMember.salary.amount}/{staffMember.salary.paymentFrequency}
+                      <span className="font-medium">Salary:</span> {formatCurrency(staffMember.salary.amount)} / {staffMember.salary.paymentFrequency}
                     </div>
                   )}
                 </div>

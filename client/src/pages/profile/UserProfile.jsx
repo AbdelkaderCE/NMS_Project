@@ -7,8 +7,9 @@ import {
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Alert from '../../components/common/Alert';
-import { authAPI, childrenAPI, paymentAPI, messageAPI } from '../../api';
+import { authAPI, userAPI, childrenAPI, paymentAPI, messageAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
 
 const UserProfile = ({ onSearchClick }) => {
   const { id } = useParams();
@@ -18,6 +19,8 @@ const UserProfile = ({ onSearchClick }) => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [alert, setAlert] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isPasswordSetting, setIsPasswordSetting] = useState(false);
   const [stats, setStats] = useState({
     childrenCount: 0,
     totalPaid: 0,
@@ -36,14 +39,16 @@ const UserProfile = ({ onSearchClick }) => {
   // Determine if current user can edit this profile
   const canEdit = () => {
     if (currentUser?.role === 'admin') return true; // Admin can edit anyone
+    if (currentUser?.role === 'staff' && currentUser?.staffInfo?.position === 'manager') return true; // Manager can edit anyone
     if (currentUser?._id === id) return true; // User can edit their own
     return false;
   };
 
   // Determine if current user can view this profile
   const canView = () => {
-    if (currentUser?.role === 'admin' || currentUser?.role === 'staff') return true;
-    if (currentUser?._id === id) return true;
+    if (currentUser?.role === 'admin') return true;
+    if (currentUser?.role === 'staff') return true; // Staff can view profiles
+    if (currentUser?._id === id) return true; // Self
     return false;
   };
 
@@ -58,17 +63,22 @@ const UserProfile = ({ onSearchClick }) => {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch user profile - always use getMe for current user
-      const response = await authAPI.getMe();
-      const profileData = response.data;
+      let profileData;
+      if (!id || currentUser?._id === id) {
+        const response = await authAPI.getMe();
+        profileData = response.data;
+      } else {
+        // Admin/staff viewing another user's profile
+        const response = await userAPI.getById(id);
+        profileData = response.data;
+      }
       
       setProfile(profileData);
       setFormData({
-        firstName: profileData.firstName || '',
-        lastName: profileData.lastName || '',
+        firstName: profileData.firstName || profileData.name?.split(' ')[0] || '',
+        lastName: profileData.lastName || (profileData.name?.split(' ').slice(1).join(' ') || ''),
         email: profileData.email || '',
-        phone: profileData.phone || '',
+        phone: profileData.phone || profileData.staffInfo?.phone || '',
         address: typeof profileData.address === 'string' 
           ? profileData.address 
           : profileData.address?.street 
@@ -183,7 +193,7 @@ const UserProfile = ({ onSearchClick }) => {
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg"
                 >
                   <FiEdit2 className="h-5 w-5" />
                   Edit Profile
@@ -201,14 +211,14 @@ const UserProfile = ({ onSearchClick }) => {
                         address: profile.address || ''
                       });
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    className="flex items-center gap-2 px-4 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/30 text-gray-700 rounded-lg hover:bg-white/80 transition-all font-medium"
                   >
                     <FiX className="h-5 w-5" />
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:from-green-700 hover:to-green-600 transition-all font-medium shadow-md hover:shadow-lg"
                   >
                     <FiSave className="h-5 w-5" />
                     Save Changes
@@ -221,43 +231,44 @@ const UserProfile = ({ onSearchClick }) => {
 
         {/* Profile Header */}
         <Card>
-          <div className="flex items-start gap-6">
-            {/* Profile Photo */}
-            <div className="flex-shrink-0">
-              {profile.photo ? (
-                <img
-                  src={profile.photo}
-                  alt={`${profile.firstName} ${profile.lastName}`}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-primary-100"
-                />
-              ) : (
-                <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${
-                  profile.role === 'admin' 
-                    ? 'from-purple-400 to-purple-600'
-                    : profile.role === 'staff'
-                    ? 'from-blue-400 to-blue-600'
-                    : 'from-green-400 to-green-600'
-                } flex items-center justify-center border-4 ${
-                  profile.role === 'admin' 
-                    ? 'border-purple-100'
-                    : profile.role === 'staff'
-                    ? 'border-blue-100'
-                    : 'border-green-100'
-                }`}>
-                  <span className="text-4xl font-bold text-white">
-                    {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="bg-gradient-to-r from-blue-50/50 to-white/50 rounded-xl p-6 -mx-6 -mt-6 mb-6 border-b border-blue-200/30">
+            <div className="flex items-start gap-6">
+              {/* Profile Photo */}
+              <div className="flex-shrink-0">
+                {profile.photo ? (
+                  <img
+                    src={profile.photo}
+                    alt={`${profile.firstName || profile.name || ''} ${profile.lastName || ''}`}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-blue-200 shadow-lg"
+                  />
+                ) : (
+                  <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${
+                    profile.role === 'admin' 
+                      ? 'from-purple-400 to-purple-600'
+                      : profile.role === 'staff'
+                      ? 'from-blue-400 to-blue-600'
+                      : 'from-green-400 to-green-600'
+                  } flex items-center justify-center border-4 ${
+                    profile.role === 'admin' 
+                      ? 'border-purple-200'
+                      : profile.role === 'staff'
+                      ? 'border-blue-200'
+                      : 'border-green-200'
+                  } shadow-lg`}>
+                    <span className="text-4xl font-bold text-white">
+                        {(profile.firstName || profile.name || 'N').charAt(0)}{(profile.lastName || (profile.name?.split(' ')[1] || '')).charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            {/* Basic Info */}
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    {profile.firstName} {profile.lastName}
-                  </h1>
+              {/* Basic Info */}
+              <div className="flex-1">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+                      {profile.firstName || profile.name || 'N/A'} {profile.lastName || ''}
+                    </h1>
                   <div className="flex items-center gap-4 mt-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold capitalize ${
                       profile.role === 'admin'
@@ -266,7 +277,7 @@ const UserProfile = ({ onSearchClick }) => {
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {profile.role}
+                      {profile.role}{profile.staffInfo?.position ? ` • ${profile.staffInfo.position}` : ''}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                       profile.isActive 
@@ -282,7 +293,7 @@ const UserProfile = ({ onSearchClick }) => {
               {/* Quick Stats for Parents */}
               {profile.role === 'parent' && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="backdrop-blur-sm bg-gradient-to-br from-blue-50/70 to-white/50 border border-blue-200/30 rounded-lg p-4 hover:border-blue-300/50 transition-all shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Children</p>
@@ -292,40 +303,41 @@ const UserProfile = ({ onSearchClick }) => {
                     </div>
                   </div>
 
-                  <div className="bg-green-50 rounded-lg p-4">
+                  <div className="backdrop-blur-sm bg-gradient-to-br from-green-50/70 to-white/50 border border-green-200/30 rounded-lg p-4 hover:border-green-300/50 transition-all shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Total Paid</p>
                         <p className="text-xl font-bold text-green-600">
-                          ${stats.totalPaid.toLocaleString()}
+                          {formatCurrency(stats.totalPaid)}
                         </p>
                       </div>
                       <FiDollarSign className="h-8 w-8 text-green-600" />
                     </div>
                   </div>
 
-                  <div className="bg-yellow-50 rounded-lg p-4">
+                  <div className="backdrop-blur-sm bg-gradient-to-br from-amber-50/70 to-white/50 border border-amber-200/30 rounded-lg p-4 hover:border-amber-300/50 transition-all shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-600">{stats.pendingPayments}</p>
+                        <p className="text-2xl font-bold text-amber-600">{stats.pendingPayments}</p>
                       </div>
-                      <FiCalendar className="h-8 w-8 text-yellow-600" />
+                      <FiCalendar className="h-8 w-8 text-amber-600" />
                     </div>
                   </div>
 
-                  <div className="bg-purple-50 rounded-lg p-4">
+                  <div className="backdrop-blur-sm bg-gradient-to-br from-indigo-50/70 to-white/50 border border-indigo-200/30 rounded-lg p-4 hover:border-indigo-300/50 transition-all shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Messages</p>
-                        <p className="text-2xl font-bold text-purple-600">{stats.messagesCount}</p>
+                        <p className="text-2xl font-bold text-indigo-600">{stats.messagesCount}</p>
                       </div>
-                      <FiMessageSquare className="h-8 w-8 text-purple-600" />
+                      <FiMessageSquare className="h-8 w-8 text-indigo-600" />
                     </div>
                   </div>
                 </div>
               )}
             </div>
+          </div>
           </div>
         </Card>
 
@@ -345,7 +357,7 @@ const UserProfile = ({ onSearchClick }) => {
                         name="firstName"
                         value={formData.firstName}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                         required
                       />
                     </div>
@@ -358,7 +370,7 @@ const UserProfile = ({ onSearchClick }) => {
                         name="lastName"
                         value={formData.lastName}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                         required
                       />
                     </div>
@@ -373,7 +385,7 @@ const UserProfile = ({ onSearchClick }) => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                       required
                     />
                   </div>
@@ -387,7 +399,7 @@ const UserProfile = ({ onSearchClick }) => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                     />
                   </div>
 
@@ -400,7 +412,7 @@ const UserProfile = ({ onSearchClick }) => {
                       value={formData.address}
                       onChange={handleInputChange}
                       rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
                     />
                   </div>
                 </>
@@ -409,7 +421,7 @@ const UserProfile = ({ onSearchClick }) => {
                   <div>
                     <label className="text-sm font-medium text-gray-500">Full Name</label>
                     <p className="text-gray-900 font-medium">
-                      {profile.firstName} {profile.lastName}
+                      {(profile.firstName || 'N/A')} {(profile.lastName || '')}
                     </p>
                   </div>
                   <div>
@@ -419,15 +431,13 @@ const UserProfile = ({ onSearchClick }) => {
                       {profile.email}
                     </p>
                   </div>
-                  {profile.phone && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Phone</label>
-                      <p className="text-gray-900 flex items-center gap-2">
-                        <FiPhone className="h-4 w-4 text-gray-400" />
-                        {profile.phone}
-                      </p>
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Phone</label>
+                    <p className="text-gray-900 flex items-center gap-2">
+                      <FiPhone className="h-4 w-4 text-gray-400" />
+                      {profile.phone || profile.staffInfo?.phone || 'N/A'}
+                    </p>
+                  </div>
                   {profile.address && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Address</label>
@@ -483,6 +493,42 @@ const UserProfile = ({ onSearchClick }) => {
               )}
             </div>
           </Card>
+
+          {/* Admin/Manager: Set password for this user */}
+          {canEdit() && id && currentUser?._id !== id && (
+            <Card title="Set User Password">
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">Set a new password for this user. Minimum 6 characters.</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="password"
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="flex-1 px-3 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
+                  />
+                  <button
+                    disabled={isPasswordSetting}
+                    onClick={async () => {
+                      try {
+                        setIsPasswordSetting(true);
+                        await userAPI.setPassword(id, newPassword);
+                        setNewPassword('');
+                        showAlert('success', 'Password updated successfully');
+                      } catch (error) {
+                        showAlert('error', error.response?.data?.message || 'Failed to update password');
+                      } finally {
+                        setIsPasswordSetting(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Set Password
+                  </button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </Layout>

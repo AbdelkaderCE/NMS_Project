@@ -10,6 +10,7 @@ import Modal from '../../components/common/Modal';
 import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
 
 const PaymentList = ({ onSearchClick }) => {
   const location = useLocation();
@@ -315,7 +316,7 @@ const PaymentList = ({ onSearchClick }) => {
                 <p className="text-sm text-green-700 font-medium">
                   {isParent ? 'Total Paid' : 'Total Revenue'}
                 </p>
-                <p className="text-2xl font-bold text-green-700 mt-1">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-700 mt-1">{formatCurrency(stats.totalRevenue)}</p>
               </div>
               <div className="bg-green-200 p-3 rounded-lg">
                 <FiCheck className="text-green-700 text-2xl" />
@@ -327,7 +328,7 @@ const PaymentList = ({ onSearchClick }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-amber-700 font-medium">Pending Amount</p>
-                <p className="text-2xl font-bold text-amber-700 mt-1">${stats.pendingAmount.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">{formatCurrency(stats.pendingAmount)}</p>
               </div>
               <div className="bg-amber-200 p-3 rounded-lg">
                 <FiClock className="text-amber-700 text-2xl" />
@@ -450,10 +451,10 @@ const PaymentList = ({ onSearchClick }) => {
                       <span className="capitalize">{payment.type}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      ${payment.amount?.toFixed(2) || '0.00'}
+                      {formatCurrency(payment.amount || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
-                      ${(payment.amountPaid || 0).toFixed(2)}
+                      {formatCurrency(payment.amountPaid || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(payment.dueDate).toLocaleDateString()}
@@ -584,8 +585,8 @@ const PaymentList = ({ onSearchClick }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount ($) *
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount (DZD) *
             </label>
             <Input
               type="number"
@@ -658,18 +659,18 @@ const PaymentList = ({ onSearchClick }) => {
                 </p>
                 <p>
                   <span className="text-gray-600">Total Amount:</span>{' '}
-                  <span className="font-medium">${selectedInvoice.amount.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(selectedInvoice.amount)}</span>
                 </p>
                 <p>
                   <span className="text-gray-600">Already Paid:</span>{' '}
                   <span className="font-medium text-green-600">
-                    ${selectedInvoice.status === 'paid' ? selectedInvoice.amount.toFixed(2) : '0.00'}
+                    {formatCurrency(selectedInvoice.status === 'paid' ? selectedInvoice.amount : 0)}
                   </span>
                 </p>
                 <p>
                   <span className="text-gray-600">Balance Due:</span>{' '}
                   <span className="font-medium text-red-600">
-                    ${selectedInvoice.status === 'paid' ? '0.00' : selectedInvoice.amount.toFixed(2)}
+                    {formatCurrency(selectedInvoice.status === 'paid' ? 0 : selectedInvoice.amount)}
                   </span>
                 </p>
               </div>

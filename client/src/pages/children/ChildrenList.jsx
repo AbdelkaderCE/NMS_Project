@@ -48,7 +48,10 @@ const ChildrenList = ({ onSearchClick }) => {
 
   useEffect(() => {
     fetchChildren();
-    fetchParents();
+    // Only admin/manager/receptionist need parent list for assigning during create/edit
+    if (user?.role === 'admin' || (user?.role === 'staff' && ['manager', 'receptionist'].includes(user?.staffInfo?.position))) {
+      fetchParents();
+    }
     fetchClasses();
   }, []);
 

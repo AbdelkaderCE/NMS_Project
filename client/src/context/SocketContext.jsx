@@ -24,7 +24,8 @@ export const SocketProvider = ({ children }) => {
       console.log('🔌 Attempting to connect socket...', { userId: user._id, hasToken: !!token });
       
       // Create socket connection
-      const newSocket = io('http://localhost:5000', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const newSocket = io(socketUrl, {
         path: '/socket.io',
         auth: {
           token: token,

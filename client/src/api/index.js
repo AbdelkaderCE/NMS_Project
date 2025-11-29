@@ -17,9 +17,16 @@ export const authAPI = {
 export const userAPI = {
   getAll: (params) => api.get('/auth/users', { params }),
   getByRole: (role) => api.get('/auth/users', { params: { role } }),
+  getById: (id) => api.get(`/auth/users/${id}`),
   update: (id, data) => api.put(`/auth/users/${id}`, data),
   deactivate: (id) => api.delete(`/auth/users/${id}`),
   activate: (id) => api.put(`/auth/users/${id}/activate`),
+  setPassword: (id, newPassword) => api.put(`/auth/users/${id}/password`, { newPassword }),
+};
+
+// Role-aware Contacts API for messaging/chat
+export const contactsAPI = {
+  getAll: () => api.get('/auth/contacts'),
 };
 
 // Children APIs

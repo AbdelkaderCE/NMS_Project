@@ -217,7 +217,14 @@ const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={(e) => {
+              // Alt-click opens dropdown, normal click navigates to full page
+              if (e.altKey) {
+                setShowNotifications(!showNotifications);
+              } else {
+                navigate('/notifications');
+              }
+            }}
             className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-all"
           >
             <FiBell className="h-6 w-6" />

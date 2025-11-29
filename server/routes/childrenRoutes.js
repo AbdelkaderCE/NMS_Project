@@ -11,6 +11,7 @@ import {
   addEmergencyContact,
   removeEmergencyContact,
   getChildrenStats,
+  getChildrenByParent,
 } from '../controllers/childrenController.js';
 import {
   createChildValidation,
@@ -21,6 +22,7 @@ import {
   childIdValidation,
   parentIdValidation,
   contactIdValidation,
+  parentParamValidation,
 } from '../validators/childrenValidators.js';
 import { validate } from '../middleware/validate.js';
 import { allowStaffPositions } from '../middleware/staffPosition.js';
@@ -42,9 +44,9 @@ router.get(
 // Get children by parent
 router.get(
   '/parent/:parentId',
-  childIdValidation,
+  parentParamValidation,
   validate,
-  getChildren
+  getChildrenByParent
 );
 
 // CRUD operations

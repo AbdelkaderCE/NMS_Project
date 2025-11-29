@@ -135,10 +135,10 @@ const ActivityCalendar = ({ onSearchClick }) => {
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
         <Card>
-          <div className="p-6">
+          <div className="p-6 bg-gradient-to-b from-white/80 to-white/50 backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Activity Calendar</h1>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">Activity Calendar</h1>
                 <p className="text-gray-600 mt-1">View and track all activities by date</p>
               </div>
               
@@ -148,7 +148,7 @@ const ActivityCalendar = ({ onSearchClick }) => {
                   <select
                     value={selectedChild}
                     onChange={(e) => setSelectedChild(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-4 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
                     {children.length > 1 && <option value="all">All Children</option>}
                     {children.map((child) => (
@@ -162,8 +162,8 @@ const ActivityCalendar = ({ onSearchClick }) => {
             </div>
 
             {/* Activity Type Legend */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Activity Types:</h3>
+            <div className="mb-6 p-4 backdrop-blur-sm bg-gradient-to-r from-blue-50/50 to-white/50 border border-blue-200/30 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">Activity Types:</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full bg-purple-500"></span>
@@ -197,7 +197,7 @@ const ActivityCalendar = ({ onSearchClick }) => {
                 <Loading />
               </div>
             ) : (
-              <div style={{ height: '600px' }} className="bg-white rounded-lg">
+              <div style={{ height: '600px' }} className="backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-xl overflow-hidden shadow-lg">
                 <Calendar
                   localizer={localizer}
                   events={activities}
@@ -234,7 +234,7 @@ const ActivityCalendar = ({ onSearchClick }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                 <p>
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 capitalize">
+                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-900 capitalize border border-blue-200/50">
                     {selectedEvent.type}
                   </span>
                 </p>
@@ -262,7 +262,7 @@ const ActivityCalendar = ({ onSearchClick }) => {
               {selectedEvent.notes && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedEvent.notes}</p>
+                  <p className="text-gray-900 backdrop-blur-sm bg-blue-50/50 border border-blue-200/30 p-3 rounded-lg">{selectedEvent.notes}</p>
                 </div>
               )}
 

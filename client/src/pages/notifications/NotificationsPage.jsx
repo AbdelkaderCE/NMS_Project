@@ -3,8 +3,9 @@ import { FiBell, FiCheck, FiTrash2, FiCheckCircle, FiFilter } from 'react-icons/
 import { useNavigate } from 'react-router-dom';
 import { notificationAPI } from '../../api/notificationAPI';
 import { useSocket } from '../../context/SocketContext';
+import Layout from '../../components/layout/Layout';
 
-const NotificationsPage = () => {
+const NotificationsPage = ({ onSearchClick }) => {
   const navigate = useNavigate();
   const { newNotification } = useSocket();
   const [notifications, setNotifications] = useState([]);
@@ -120,17 +121,18 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <Layout onSearchClick={onSearchClick}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 backdrop-blur-sm bg-white/40 border border-blue-200/30 rounded-xl p-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FiBell className="h-7 w-7" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent flex items-center gap-2">
+              <FiBell className="h-7 w-7 text-blue-600" />
               Notifications
             </h1>
             {unreadCount > 0 && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-blue-600/70 mt-1">
                 You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
               </p>
             )}
@@ -139,7 +141,7 @@ const NotificationsPage = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg"
               >
                 <FiCheckCircle className="h-4 w-4" />
                 Mark all as read
@@ -148,7 +150,7 @@ const NotificationsPage = () => {
             {notifications.some((n) => n.read) && (
               <button
                 onClick={handleClearRead}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium shadow-md hover:shadow-lg"
               >
                 <FiTrash2 className="h-4 w-4" />
                 Clear read
@@ -159,16 +161,16 @@ const NotificationsPage = () => {
 
         {/* Filters */}
         <div className="flex items-center gap-2">
-          <FiFilter className="h-5 w-5 text-gray-500" />
+          <FiFilter className="h-5 w-5 text-blue-600" />
           <button
             onClick={() => {
               setFilter('all');
               setPage(1);
             }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-lg transition-all font-medium ${
               filter === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md'
+                : 'backdrop-blur-sm bg-white/70 border border-blue-200/30 text-gray-700 hover:bg-white/80'
             }`}
           >
             All
@@ -178,10 +180,10 @@ const NotificationsPage = () => {
               setFilter('unread');
               setPage(1);
             }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-lg transition-all font-medium ${
               filter === 'unread'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md'
+                : 'backdrop-blur-sm bg-white/70 border border-blue-200/30 text-gray-700 hover:bg-white/80'
             }`}
           >
             Unread
@@ -191,10 +193,10 @@ const NotificationsPage = () => {
               setFilter('read');
               setPage(1);
             }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-4 py-2 rounded-lg transition-all font-medium ${
               filter === 'read'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md'
+                : 'backdrop-blur-sm bg-white/70 border border-blue-200/30 text-gray-700 hover:bg-white/80'
             }`}
           >
             Read
@@ -206,13 +208,13 @@ const NotificationsPage = () => {
       <div className="space-y-2">
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <FiBell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <div className="text-center py-12 backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-xl">
+            <FiBell className="h-16 w-16 text-blue-300 mx-auto mb-4" />
             <p className="text-gray-600 font-medium">No notifications found</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {filter === 'all'
                 ? "You're all caught up!"
                 : `No ${filter} notifications`}
@@ -223,8 +225,10 @@ const NotificationsPage = () => {
             <div
               key={notification._id}
               onClick={() => handleNotificationClick(notification)}
-              className={`p-4 bg-white rounded-xl border-2 hover:shadow-md cursor-pointer transition-all group ${
-                !notification.read ? getPriorityColor(notification.priority) : 'border-gray-200'
+              className={`p-4 backdrop-blur-sm rounded-xl hover:shadow-md cursor-pointer transition-all group border-2 ${
+                !notification.read 
+                  ? getPriorityColor(notification.priority) + ' bg-opacity-10'
+                  : 'border-blue-200/30 bg-white/70 hover:border-blue-300/50'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -247,7 +251,7 @@ const NotificationsPage = () => {
                     <p className="text-sm text-gray-700 leading-relaxed mb-2">
                       {notification.message}
                     </p>
-                    <div className="flex items-center space-x-3 text-xs text-gray-500">
+                    <div className="flex items-center space-x-3 text-xs text-gray-600">
                       <span>{notification.timeAgo}</span>
                       <span>•</span>
                       <span className="capitalize">{notification.type.replace(/_/g, ' ')}</span>
@@ -269,7 +273,7 @@ const NotificationsPage = () => {
                         e.stopPropagation();
                         handleNotificationClick(notification);
                       }}
-                      className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                      className="p-2 hover:bg-green-100/50 rounded-lg transition-colors"
                       title="Mark as read"
                     >
                       <FiCheck className="h-5 w-5 text-green-600" />
@@ -277,7 +281,7 @@ const NotificationsPage = () => {
                   )}
                   <button
                     onClick={(e) => handleDeleteNotification(notification._id, e)}
-                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-red-100/50 rounded-lg transition-colors"
                     title="Delete"
                   >
                     <FiTrash2 className="h-5 w-5 text-red-600" />
@@ -295,23 +299,24 @@ const NotificationsPage = () => {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-lg hover:bg-white/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             Previous
           </button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 font-medium">
             Page {page} of {pagination.pages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
             disabled={page === pagination.pages}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-lg hover:bg-white/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             Next
           </button>
         </div>
       )}
     </div>
+    </Layout>
   );
 };
 

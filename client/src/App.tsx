@@ -95,7 +95,7 @@ function App() {
           <Route
             path="/staff"
             element={
-              <PrivateRoute allowedRoles={['admin']}>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager']}>
                 <StaffList onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
@@ -103,7 +103,7 @@ function App() {
           <Route
             path="/staff/:id"
             element={
-              <PrivateRoute allowedRoles={['admin']}>
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['manager']}>
                 <StaffProfile onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }

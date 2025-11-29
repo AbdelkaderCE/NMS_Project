@@ -10,7 +10,7 @@ const Layout = ({ children, onSearchClick }) => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-blue-25 to-blue-50">
       {/* Sidebar for desktop */}
       <aside className="hidden lg:flex lg:flex-shrink-0">
         <div className="w-64">

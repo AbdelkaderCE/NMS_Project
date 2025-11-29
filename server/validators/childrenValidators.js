@@ -247,3 +247,10 @@ export const contactIdValidation = [
     .isMongoId()
     .withMessage('Invalid contact ID'),
 ];
+
+// Parent param validation for /children/parent/:parentId
+export const parentParamValidation = [
+  param('parentId')
+    .isMongoId()
+    .withMessage('Invalid parent ID'),
+];

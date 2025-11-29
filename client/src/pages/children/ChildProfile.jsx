@@ -121,7 +121,7 @@ const ChildProfile = ({ onSearchClick }) => {
             (user?.role === 'staff' && 
              ['manager', 'receptionist'].includes(user?.staffInfo?.position))) && (
             <Link to={`/children/edit/${child._id}`}>
-              <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+              <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all font-medium shadow-md hover:shadow-lg">
                 <FiEdit2 className="h-5 w-5" />
                 Edit Profile
               </button>
@@ -180,7 +180,7 @@ const ChildProfile = ({ onSearchClick }) => {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-blue-50/70 to-white/50 border border-blue-200/30 rounded-lg p-4 hover:border-blue-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Attendance</p>
@@ -190,7 +190,7 @@ const ChildProfile = ({ onSearchClick }) => {
                   </div>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-purple-50/70 to-white/50 border border-purple-200/30 rounded-lg p-4 hover:border-purple-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Activities</p>
@@ -200,7 +200,7 @@ const ChildProfile = ({ onSearchClick }) => {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 rounded-lg p-4">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-yellow-50/70 to-white/50 border border-yellow-200/30 rounded-lg p-4 hover:border-yellow-300/50 transition-all shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Pending Payments</p>
