@@ -225,6 +225,7 @@ async function setupDatabase() {
       if (position === 'teacher') {
         console.log(`   📚 Assigned Classes: ${classes.length} (all classes)`);
       }
+    }
 
     // ============================================================
     // CREATE GROUPS
