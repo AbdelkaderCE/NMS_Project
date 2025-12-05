@@ -127,12 +127,21 @@ export const getAllAttendance = async (req, res, next) => {
     if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
       const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
       
+      console.log('🎓 Teacher staff info:', { 
+        userId: req.user.id, 
+        hasStaffInfo: !!staffInfo,
+        assignedClasses: staffInfo?.assignedClasses?.map(c => c._id),
+        classCount: staffInfo?.assignedClasses?.length 
+      });
+      
       if (staffInfo && staffInfo.assignedClasses && staffInfo.assignedClasses.length > 0) {
         const classIds = staffInfo.assignedClasses.map(cls => cls._id);
         const classChildren = await Child.find({ assignedClass: { $in: classIds } }).select('_id');
+        console.log('📚 Children in classes:', classChildren.map(c => c._id));
         query.child = { $in: classChildren.map((c) => c._id) };
       } else {
         // Teacher has no assigned classes, return empty result
+        console.log('⚠️ Teacher has no assigned classes');
         return sendPaginatedResponse(res, 200, 'No attendance records available', [], { page, limit, total: 0 });
       }
     }
@@ -181,6 +190,9 @@ export const getAllAttendance = async (req, res, next) => {
     }
 
     const totalItems = await Attendance.countDocuments(query);
+
+    console.log('🔍 Attendance query:', query);
+    console.log('📊 Total items found:', totalItems);
 
     const attendance = await Attendance.find(query)
       .populate('child', 'firstName lastName photo classGroup')

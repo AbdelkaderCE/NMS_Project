@@ -48,9 +48,13 @@ const AttendanceList = ({ onSearchClick }) => {
       const params = { date: selectedDate };
       if (filterChild) params.child = filterChild;
       
+      console.log('Fetching attendance with params:', params);
       const response = await attendanceAPI.getAll(params);
-      console.log('Fetched attendance records:', response.data);
+      console.log('Full API response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response pagination:', response.pagination);
       setAttendanceRecords(response.data || []);
+      console.log('Set attendance records to:', response.data || []);
     } catch (error) {
       console.error('Failed to fetch attendance:', error);
       setAttendanceRecords([]);
