@@ -90,7 +90,7 @@ const staffSchema = new mongoose.Schema(
     assignedClasses: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Group',
+        ref: 'Class',
       },
     ],
     
