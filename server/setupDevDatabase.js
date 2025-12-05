@@ -184,6 +184,8 @@ async function setupDatabase() {
         department: 'Education',
         hireDate: new Date('2024-01-15'),
         employmentType: 'full-time',
+        // Assign all classes to the first teacher (position: 'teacher')
+        assignedClasses: position === 'teacher' ? classes.map(c => c._id) : [],
         qualifications: [
           {
             degree: 'Bachelor',
@@ -220,7 +222,9 @@ async function setupDatabase() {
       console.log(`✅ ${title} created`);
       console.log(`   📧 Email: ${user.email}`);
       console.log(`   🔐 Password: ${password}`);
-    }
+      if (position === 'teacher') {
+        console.log(`   📚 Assigned Classes: ${classes.length} (all classes)`);
+      }
 
     // ============================================================
     // CREATE GROUPS
