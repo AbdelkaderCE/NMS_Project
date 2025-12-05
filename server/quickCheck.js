@@ -74,6 +74,34 @@ const checkDB = async () => {
     console.log('\n📚 All class IDs:');
     classes.forEach(c => console.log(`  ${c._id} - ${c.name}`));
     
+        // Check specific user ID from the logs
+        const testUserId = '6932b48ff3b7f0bdca1caeba';
+        console.log(`\n🔍 Checking user ID: ${testUserId}`);
+    
+        const user = await db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(testUserId) });
+        console.log('User found:', user ? `${user.email} (${user.role})` : 'NOT FOUND');
+    
+        if (user && user.role === 'staff') {
+          const staffRecord = await db.collection('staffs').findOne({ user: new mongoose.Types.ObjectId(testUserId) });
+          console.log('Staff record:', staffRecord ? `Position: ${staffRecord.position}, Classes: ${staffRecord.assignedClasses?.length || 0}` : 'NOT FOUND');
+      
+          if (staffRecord && staffRecord.assignedClasses?.length > 0) {
+            console.log('\n📚 Staff assigned class IDs:');
+            staffRecord.assignedClasses.forEach(classId => console.log(`  ${classId}`));
+        
+            const childrenInClasses = await db.collection('children').find({ 
+              assignedClass: { $in: staffRecord.assignedClasses } 
+            }).toArray();
+            console.log(`\n👶 Children in staff's classes: ${childrenInClasses.length}`);
+            if (childrenInClasses.length > 0) {
+              console.log('Sample children:');
+              childrenInClasses.slice(0, 3).forEach(c => 
+                console.log(`  ${c._id} - ${c.firstName} ${c.lastName} (Class: ${c.assignedClass})`)
+              );
+            }
+          }
+        }
+    
     mongoose.connection.close();
   } catch (error) {
     console.error('Error:', error);
