@@ -49,9 +49,11 @@ const AttendanceList = ({ onSearchClick }) => {
       if (filterChild) params.child = filterChild;
       
       const response = await attendanceAPI.getAll(params);
+      console.log('Fetched attendance records:', response.data);
       setAttendanceRecords(response.data || []);
     } catch (error) {
       console.error('Failed to fetch attendance:', error);
+      setAttendanceRecords([]);
     } finally {
       setLoading(false);
     }
@@ -74,9 +76,15 @@ const AttendanceList = ({ onSearchClick }) => {
 
       console.log('Sending attendance data:', attendanceData);
       
-      await attendanceAPI.create(attendanceData);
+      const response = await attendanceAPI.create(attendanceData);
+      console.log('Create attendance response:', response);
+      
       showAlert('success', 'Check-in recorded successfully');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay to ensure DB is updated
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Attendance error:', error);
       console.error('Error response:', error.response?.data);
@@ -86,11 +94,17 @@ const AttendanceList = ({ onSearchClick }) => {
 
   const handleCheckOut = async (attendanceId) => {
     try {
-      await attendanceAPI.update(attendanceId, {
+      const response = await attendanceAPI.update(attendanceId, {
         checkOutTime: new Date().toISOString()
       });
+      console.log('Update attendance (checkout) response:', response);
+      
       showAlert('success', 'Check-out recorded successfully');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Checkout error:', error);
       console.error('Error response:', error.response?.data);
@@ -107,9 +121,15 @@ const AttendanceList = ({ onSearchClick }) => {
         recordedBy: user._id
       };
 
-      await attendanceAPI.create(attendanceData);
+      const response = await attendanceAPI.create(attendanceData);
+      console.log('Create attendance (absent) response:', response);
+      
       showAlert('success', 'Marked as absent');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay to ensure DB is updated
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Absent error:', error);
       console.error('Error response:', error.response?.data);

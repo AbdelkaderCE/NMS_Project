@@ -14,7 +14,7 @@ export default function AttendanceMarking() {
   const [selectedChild, setSelectedChild] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendance, setAttendance] = useState({
-    status: 'PRESENT',
+    status: 'present',
     temperature: '',
     notes: '',
   });
@@ -103,12 +103,17 @@ export default function AttendanceMarking() {
       if (response.data.success) {
         setSuccess(true);
         setAttendance({
-          status: 'PRESENT',
+          status: 'present',
           temperature: '',
           notes: '',
         });
         setSelectedChild(null);
-        fetchAttendanceList();
+        
+        // Refresh attendance list and switch to list view
+        setTimeout(() => {
+          fetchAttendanceList();
+          setShowList(true);
+        }, 500);
 
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000);
@@ -283,10 +288,10 @@ export default function AttendanceMarking() {
                       onChange={(e) => handleAttendanceChange('status', e.target.value)}
                       className="form-input"
                     >
-                      <option value="PRESENT">Present</option>
-                      <option value="ABSENT">Absent</option>
-                      <option value="LATE">Late</option>
-                      <option value="SICK">Sick Leave</option>
+                      <option value="present">Present</option>
+                      <option value="absent">Absent</option>
+                      <option value="late">Late</option>
+                      <option value="sick">Sick Leave</option>
                     </select>
                   </div>
                 </div>
