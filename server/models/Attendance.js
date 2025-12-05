@@ -42,11 +42,11 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     
-    // Staff who recorded attendance
+    // Staff who recorded attendance (can be null for admin)
     recordedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Staff',
-      required: [true, 'Staff reference is required'],
+      default: null,
     },
     
     // Temperature check (if applicable)

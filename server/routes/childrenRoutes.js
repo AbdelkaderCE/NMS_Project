@@ -25,8 +25,9 @@ import {
   parentParamValidation,
 } from '../validators/childrenValidators.js';
 import { validate } from '../middleware/validate.js';
-import { allowStaffPositions } from '../middleware/staffPosition.js';
+import { allowAdminOrStaffPositions } from '../middleware/staffPosition.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { teacherClassFilter, classTeacherAuth } from '../middleware/classTeacherAuth.js';
 import { ROLES } from '../utils/constants.js';
 
 const router = express.Router();
@@ -52,11 +53,11 @@ router.get(
 // CRUD operations
 router
   .route('/')
-  .get(getChildren) // Parents see only their children
+  .get(teacherClassFilter, getChildren) // Parents see only their children, teachers see only their classes
   .post(
     authorize(ROLES.ADMIN, ROLES.STAFF),
     // For staff, restrict to manager or receptionist positions only
-    allowStaffPositions('manager', 'receptionist'),
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     createChildValidation,
     validate,
     createChild
@@ -64,17 +65,17 @@ router
 
 router
   .route('/:id')
-  .get(childIdValidation, validate, getChildById) // Parents can view their own children
+  .get(classTeacherAuth, childIdValidation, validate, getChildById) // Teachers can only view children in their classes
   .put(
     authorize(ROLES.ADMIN, ROLES.STAFF),
-    allowStaffPositions('manager', 'receptionist'),
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     updateChildValidation,
     validate,
     updateChild
   )
   .delete(
     authorize(ROLES.ADMIN, ROLES.STAFF),
-    allowStaffPositions('manager', 'receptionist'),
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     childIdValidation,
     validate,
     deleteChild

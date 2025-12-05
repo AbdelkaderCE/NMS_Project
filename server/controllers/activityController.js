@@ -47,19 +47,24 @@ export const createActivity = async (req, res, next) => {
     }
 
     // Find staff profile for the authenticated user
-    const staffProfile = await Staff.findOne({ user: req.user.id });
-    if (!staffProfile) {
-      return sendError(res, 400, 'Staff profile is required. Only staff members can log activities.');
-    }
-    if (staffProfile.position !== 'teacher') {
-      return sendError(res, 403, 'Only staff with position "teacher" can log activities');
+    // Admins can create activities without a staff profile
+    let staffProfile = null;
+    if (req.user.role === 'staff') {
+      staffProfile = await Staff.findOne({ user: req.user.id });
+      if (!staffProfile) {
+        return sendError(res, 400, 'Staff profile is required. Only staff members can log activities.');
+      }
+      if (staffProfile.position !== 'teacher') {
+        return sendError(res, 403, 'Only staff with position "teacher" can log activities');
+      }
     }
 
     // Create activity
-    const activity = await Activity.create({
-      ...req.body,
-      loggedBy: staffProfile._id,
-    });
+    const activityData = { ...req.body };
+    if (staffProfile) {
+      activityData.loggedBy = staffProfile._id;
+    }
+    const activity = await Activity.create(activityData);
 
     await activity.populate([
       { path: 'child', select: 'firstName lastName photo' },
@@ -88,7 +93,8 @@ export const getAllActivities = async (req, res, next) => {
 
     // If user is parent, only show their children's activities
     if (req.user.role === ROLES.PARENT) {
-      const children = await Child.find({ 'parents.parent': req.user.id }).select('_id');
+      const children = await Child.find({ 'parents.parent': req.user.id })
+        .select('_id assignedClass assignedGroup');
       if (children.length === 0) {
         return sendPaginatedResponse(res, 200, 'No activities found', [], {
           currentPage: page,
@@ -96,7 +102,17 @@ export const getAllActivities = async (req, res, next) => {
           totalItems: 0,
         });
       }
-      query.child = { $in: children.map((c) => c._id) };
+      
+      const childIds = children.map((c) => c._id);
+      const classIds = [...new Set(children.map(c => c.assignedClass).filter(Boolean))];
+      const groupIds = [...new Set(children.map(c => c.assignedGroup).filter(Boolean))];
+      
+      // Activities for their specific children OR for their groups OR for their classes
+      query.$or = [
+        { child: { $in: childIds } },
+        { group: { $in: groupIds } },
+        { class: { $in: classIds } }
+      ];
     }
 
     // Filter by child
@@ -271,7 +287,14 @@ export const getActivitiesByChild = async (req, res, next) => {
       }
     }
 
-    let query = { child: childId };
+    // Activities can be for the specific child OR for the child's group/class
+    let query = {
+      $or: [
+        { child: childId },
+        { group: child.assignedGroup },
+        { class: child.assignedClass }
+      ]
+    };
 
     // Filter by type
     if (type) {

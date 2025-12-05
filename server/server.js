@@ -204,6 +204,7 @@ import enrollmentRequestRoutes from './routes/enrollmentRequestRoutes.js';
 import auditLogRoutes from './routes/auditLogRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import absenceExcuseRoutes from './routes/absenceExcuseRoutes.js';
 import cron from 'node-cron';
 import Payment from './models/Payment.js';
 import { PAYMENT_STATUS } from './utils/constants.js';
@@ -223,6 +224,7 @@ app.use('/api/enrollment-requests', enrollmentRequestRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/absence-excuses', absenceExcuseRoutes);
 
 // ================= Overdue Payment Reminder Cron =================
 // Runs daily at 08:00 server time

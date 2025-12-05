@@ -89,15 +89,36 @@ export const getChildren = async (req, res, next) => {
       
       const position = req.user.staffInfo.position;
       
-      // Teachers and assistants only see children in their assigned groups
-      if (position === 'teacher' || position === 'assistant') {
-        const assignedGroups = req.user.staffInfo.assignedClasses || [];
-        
-        if (assignedGroups.length > 0) {
-          query.assignedGroup = { $in: assignedGroups };
+      // Teachers and assistants only see children in their assigned classes/groups
+      if (position === 'teacher' || position === 'assistant' || position === 'special_educator') {
+        // Check if teacher has assigned classes (from middleware)
+        if (req.isTeacherWithoutClasses) {
+          // Teacher with no assigned classes
+          return sendPaginatedResponse(res, 200, 'No children found - no assigned classes', [], {
+            page,
+            limit,
+            totalPages: 0,
+            totalItems: 0,
+            hasNextPage: false,
+            hasPrevPage: false
+          });
+        }
+
+        // Use assigned group IDs and class IDs from middleware
+        // Children should be in either an assigned group OR an assigned class
+        const conditions = [];
+        if (req.teacherAssignedGroupIds && req.teacherAssignedGroupIds.length > 0) {
+          conditions.push({ assignedGroup: { $in: req.teacherAssignedGroupIds } });
+        }
+        if (req.teacherAssignedClassIds && req.teacherAssignedClassIds.length > 0) {
+          conditions.push({ assignedClass: { $in: req.teacherAssignedClassIds } });
+        }
+
+        if (conditions.length > 0) {
+          query.$or = conditions;
         } else {
-          // If no groups assigned, show nothing
-          return sendPaginatedResponse(res, 200, 'No children found', [], {
+          // Fallback: no assigned groups or classes
+          return sendPaginatedResponse(res, 200, 'No children found - no assigned classes or groups', [], {
             page,
             limit,
             totalPages: 0,

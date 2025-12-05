@@ -24,6 +24,7 @@ import {
 import { validate } from '../middleware/validate.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { isTeacher } from '../middleware/teacherAuth.js';
+import { classTeacherAuth } from '../middleware/classTeacherAuth.js';
 import { ROLES } from '../utils/constants.js';
 
 const router = express.Router();
@@ -50,6 +51,7 @@ router.get(
 // Get attendance by child and date
 router.get(
   '/child/:childId/date/:date',
+  classTeacherAuth, // Verify teacher owns the child's class
   childDateValidation,
   validate,
   getAttendanceByChildAndDate
@@ -80,6 +82,7 @@ router
   ) // Parents see only their children's attendance
   .post(
     isTeacher, // Only teachers and admin can create attendance
+    classTeacherAuth, // Verify teacher owns the child's class
     createAttendanceValidation,
     validate,
     createAttendance
@@ -94,6 +97,7 @@ router
   ) // Parents can view their own children's attendance
   .put(
     isTeacher, // Only teachers and admin can update attendance
+    classTeacherAuth, // Verify teacher owns the child's class
     updateAttendanceValidation,
     validate,
     updateAttendance
