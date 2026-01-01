@@ -36,7 +36,7 @@ export const notifyEnrollmentRequest = async (enrollment, adminUsers, io) => {
           type: 'enrollment',
           title: 'New Enrollment Request',
           message: `New enrollment request for ${enrollment.childName}`,
-          link: '/enrollment-requests',
+          link: '/enrollment/requests',
           metadata: {
             enrollmentId: enrollment._id,
             childName: enrollment.childName,

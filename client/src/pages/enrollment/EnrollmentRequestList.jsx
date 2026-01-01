@@ -55,12 +55,21 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
       const payload = classId ? { classId } : {};
       const response = await enrollmentRequestAPI.accept(selectedRequest._id, payload);
       
-      // Check if temp password exists (for public requests)
-      const tempPasswordMessage = response.tempPassword 
-        ? `\n\nTemporary password: ${response.tempPassword}\n\nPlease send this to the parent's email.`
-        : '';
+      // Response structure: { success, message, data: { request, parentEmail, tempPassword, assignedGroup } }
+      const acceptData = response.data || response;
+      let successMessage = 'Application accepted!';
       
-      alert(`Application accepted!${tempPasswordMessage}`);
+      // Add group information if available
+      if (acceptData.assignedGroup) {
+        successMessage += `\n\nGroup Assignment:\n${acceptData.assignedGroup.name} (${acceptData.assignedGroup.maxCapacity} capacity)`;
+      }
+      
+      // Add temp password if it's a public request
+      if (acceptData.tempPassword) {
+        successMessage += `\n\nTemporary password: ${acceptData.tempPassword}\n\nPlease share this with the parent's email: ${acceptData.parentEmail}`;
+      }
+      
+      alert(successMessage);
       setShowModal(false);
       fetchRequests();
     } catch (error) {

@@ -1,19 +1,37 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
-import { dashboardAPI } from '../../api';
-import { FiUsers, FiCalendar, FiActivity, FiMail, FiCheckCircle } from 'react-icons/fi';
+import { dashboardAPI, dailyReportAPI } from '../../api';
+import { FiUsers, FiCalendar, FiActivity, FiMail, FiCheckCircle, FiFileText } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const StaffDashboard = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [dailyReports, setDailyReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
+    fetchTodayReports();
   }, []);
+
+  const fetchTodayReports = async () => {
+    try {
+      setReportsLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      const response = await dailyReportAPI.getAll({ date: today });
+      const reports = response.data?.data || response.data || [];
+      setDailyReports(reports);
+    } catch (error) {
+      console.error('Error fetching daily reports:', error);
+      setDailyReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -121,6 +139,57 @@ const StaffDashboard = ({ onSearchClick }) => {
             </Link>
           </div>
         </Card>
+
+        {/* Today's Daily Reports */}
+        {(user?.staffInfo?.position === 'teacher' || user?.staffInfo?.position === 'assistant') && (
+          <Card title="Today's Reports" subtitle="Daily activity reports for children">
+            {reportsLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              </div>
+            ) : dailyReports.length === 0 ? (
+              <Link to="/daily-reports" className="block p-4 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FiFileText className="h-5 w-5 text-green-600 mr-3" />
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Create Daily Reports</h3>
+                      <p className="text-sm text-gray-600">No reports created for today yet</p>
+                    </div>
+                  </div>
+                  <span className="text-green-600 font-medium">Start →</span>
+                </div>
+              </Link>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-3 p-3 bg-green-50 rounded-lg">
+                  <span className="text-sm font-medium text-green-900">Reports Created Today</span>
+                  <span className="text-lg font-bold text-green-600">{dailyReports.length}</span>
+                </div>
+                {dailyReports.slice(0, 3).map(report => (
+                  <div key={report._id} className="p-3 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 transition-all shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{report.child?.firstName} {report.child?.lastName}</h4>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Status: <span className={`font-medium ${report.status === 'draft' ? 'text-yellow-600' : report.status === 'completed' ? 'text-blue-600' : 'text-green-600'}`}>
+                            {report.status}
+                          </span>
+                        </p>
+                      </div>
+                      <Link to="/daily-reports" className="text-blue-600 hover:text-blue-700 text-sm font-medium">View</Link>
+                    </div>
+                  </div>
+                ))}
+                {dailyReports.length > 3 && (
+                  <Link to="/daily-reports" className="block text-center p-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
+                    View all {dailyReports.length} reports →
+                  </Link>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Children Overview */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

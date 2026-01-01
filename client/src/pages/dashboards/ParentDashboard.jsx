@@ -1,17 +1,34 @@
 import { useEffect, useState } from 'react';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
-import { dashboardAPI } from '../../api';
-import { FiUsers, FiDollarSign, FiActivity, FiMail, FiCalendar } from 'react-icons/fi';
+import { dashboardAPI, dailyReportAPI } from '../../api';
+import { FiUsers, FiDollarSign, FiActivity, FiMail, FiCalendar, FiFileText } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
 const ParentDashboard = ({ onSearchClick }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dailyReports, setDailyReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
     fetchStats();
+    fetchLatestReports();
   }, []);
+
+  const fetchLatestReports = async () => {
+    try {
+      setReportsLoading(true);
+      const response = await dailyReportAPI.getAll({ limit: 5, status: 'sent' });
+      const reports = response.data?.data || response.data || [];
+      setDailyReports(reports);
+    } catch (error) {
+      console.error('Error fetching daily reports:', error);
+      setDailyReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -119,6 +136,54 @@ const ParentDashboard = ({ onSearchClick }) => {
               </div>
             )}
           </div>
+        </Card>
+
+        {/* Latest Daily Reports */}
+        <Card title="Latest Daily Reports" subtitle="Recent activity reports from school">
+          {reportsLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            </div>
+          ) : dailyReports.length === 0 ? (
+            <Link to="/daily-reports" className="block p-4 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FiFileText className="h-5 w-5 text-indigo-600 mr-3" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">No Reports Yet</h3>
+                    <p className="text-sm text-gray-600">Daily reports from school will appear here</p>
+                  </div>
+                </div>
+                <span className="text-indigo-600 font-medium">View All →</span>
+              </div>
+            </Link>
+          ) : (
+            <div className="space-y-3">
+              {dailyReports.map(report => (
+                <Link key={report._id} to="/daily-reports" className="block p-4 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg hover:bg-white/70 hover:border-blue-300/50 transition-all shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">
+                        {report.child?.firstName} {report.child?.lastName}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
+                      </p>
+                      {report.notes && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1 italic">"{report.notes}"</p>
+                      )}
+                    </div>
+                    <span className="text-indigo-600 font-medium">View →</span>
+                  </div>
+                </Link>
+              ))}
+              {dailyReports.length > 0 && (
+                <Link to="/daily-reports" className="block text-center p-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm bg-indigo-50 rounded-lg">
+                  View all reports
+                </Link>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Quick Actions & Info */}
