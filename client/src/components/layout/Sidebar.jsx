@@ -31,6 +31,7 @@ const Sidebar = () => {
     { name: 'Classes', href: '/classes', icon: FiGrid, roles: ['admin', 'staff'], staffPositions: ['manager'] },
     { name: 'Groups', href: '/groups', icon: FiLayers, roles: ['admin', 'staff'], staffPositions: ['manager'] },
     { name: 'Attendance', href: '/attendance', icon: FiCalendar, roles: ['admin', 'staff'], staffPositions: ['teacher', 'assistant'] },
+    { name: 'Daily Reports', href: '/daily-reports', icon: FiFileText, roles: ['admin', 'staff', 'parent'], staffPositions: ['teacher', 'assistant'] },
     { name: 'Absence Excuses', href: '/absence-excuses', icon: FiFileText, roles: ['admin', 'staff'], staffPositions: ['teacher'] },
     { name: 'Payments', href: '/payments', icon: FiDollarSign, roles: ['admin', 'parent', 'staff'], staffPositions: ['receptionist'] },
     { name: 'Activities', href: '/activities', icon: FiActivity, roles: ['admin', 'staff'], staffPositions: ['teacher', 'assistant', 'manager'] },

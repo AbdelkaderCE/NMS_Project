@@ -27,6 +27,7 @@ import AuditLogList from './pages/audit/AuditLogList';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import UserProfile from './pages/profile/UserProfile';
 import AbsenceExcusesPage from './pages/absenceExcuses/AbsenceExcusesPage';
+import DailyReportsPage from './pages/reports/DailyReportsPage';
 import SearchModal from './components/search/SearchModal';
 
 function App() {
@@ -122,6 +123,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['teacher', 'assistant']}>
                 <AttendanceList onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/daily-reports"
+            element={
+              <PrivateRoute allowedRoles={['admin', 'staff', 'parent']} allowedPositions={['teacher', 'assistant']}>
+                <DailyReportsPage onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />

@@ -191,6 +191,17 @@ export const absenceExcuseAPI = {
   delete: (id) => api.delete(`/absence-excuses/${id}`),
 };
 
+// Daily Report APIs
+export const dailyReportAPI = {
+  getAll: (params) => api.get('/daily-reports', { params }),
+  getById: (id) => api.get(`/daily-reports/${id}`),
+  getTodayReport: (childId) => api.get(`/daily-reports/child/${childId}/today`),
+  createOrUpdate: (data) => api.post('/daily-reports', data),
+  complete: (id) => api.put(`/daily-reports/${id}/complete`),
+  send: (id) => api.post(`/daily-reports/${id}/send`),
+  delete: (id) => api.delete(`/daily-reports/${id}`),
+};
+
 // Search API
 export const searchAPI = {
   search: (q, limit = 10) => api.get('/search', { params: { q, limit } })

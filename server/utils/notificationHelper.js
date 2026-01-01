@@ -285,3 +285,41 @@ export const notifyAbsenceExcuseStatusChanged = async (excuse, parentId, io) => 
     console.error('Error creating absence excuse status notification:', error);
   }
 };
+
+export const notifyDailyReportSent = async (report, parentIds, io) => {
+  try {
+    const childName = report.child?.firstName
+      ? `${report.child.firstName} ${report.child.lastName || ''}`.trim()
+      : 'your child';
+    
+    const dateStr = new Date(report.date).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+    
+    const notifications = parentIds.map((parentId) =>
+      createNotification(
+        {
+          recipient: parentId,
+          type: 'system',
+          title: `Daily Report - ${childName}`,
+          message: `Daily report for ${childName} on ${dateStr} is ready to view`,
+          link: `/children/${report.child._id}`,
+          metadata: {
+            reportId: report._id,
+            childId: report.child._id,
+            date: report.date,
+          },
+          priority: 'normal',
+        },
+        io
+      )
+    );
+
+    await Promise.all(notifications);
+  } catch (error) {
+    console.error('Error creating daily report notification:', error);
+  }
+};
+
