@@ -26,6 +26,7 @@ import EnrollmentRequestList from './pages/enrollment/EnrollmentRequestList';
 import AuditLogList from './pages/audit/AuditLogList';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import UserProfile from './pages/profile/UserProfile';
+import AbsenceExcusesPage from './pages/absenceExcuses/AbsenceExcusesPage';
 import SearchModal from './components/search/SearchModal';
 
 function App() {
@@ -177,6 +178,14 @@ function App() {
             element={
               <PrivateRoute>
                 <NotificationsPage onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/absence-excuses"
+            element={
+              <PrivateRoute allowedRoles={['admin', 'staff']} allowedPositions={['teacher']}>
+                <AbsenceExcusesPage onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />

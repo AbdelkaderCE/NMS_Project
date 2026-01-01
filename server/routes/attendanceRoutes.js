@@ -24,7 +24,7 @@ import {
 import { validate } from '../middleware/validate.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { isTeacher } from '../middleware/teacherAuth.js';
-import { classTeacherAuth } from '../middleware/classTeacherAuth.js';
+import { classTeacherAuth, teacherClassFilter } from '../middleware/classTeacherAuth.js';
 import { ROLES } from '../utils/constants.js';
 
 const router = express.Router();
@@ -76,6 +76,7 @@ router.post(
 router
   .route('/')
   .get(
+    teacherClassFilter, // Filter attendance for teachers to only their assigned classes
     attendanceQueryValidation,
     validate,
     getAllAttendance

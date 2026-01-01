@@ -32,7 +32,7 @@ const ParentList = ({ onSearchClick }) => {
   const fetchParents = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getByRole('parent');
+      const response = await userAPI.getByRole('parent', { limit: 100 });
       setParents(response.data || []);
       setLoading(false);
     } catch (error) {

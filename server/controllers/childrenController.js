@@ -68,9 +68,16 @@ export const getChildren = async (req, res, next) => {
 
     let query = {};
 
+    console.log('🔍 getChildren - User Info:', {
+      userId: req.user.id,
+      role: req.user.role,
+      staffInfo: req.user.staffInfo,
+    });
+
     // If user is a parent, only show their children
     if (req.user.role === ROLES.PARENT) {
       query['parents.parent'] = req.user.id;
+      console.log('👪 Parent query:', query);
     }
 
     // If user is staff, check their position and apply filters
@@ -150,7 +157,9 @@ export const getChildren = async (req, res, next) => {
     }
 
     // Get total count for pagination
+    console.log('📊 Final query before DB:', query);
     const totalItems = await Child.countDocuments(query);
+    console.log('📊 Total children found:', totalItems);
 
     // Get children with pagination
     const children = await Child.find(query)
@@ -524,6 +533,55 @@ export const getChildrenStats = async (req, res, next) => {
     };
 
     sendSuccess(res, 200, 'Children statistics retrieved successfully', stats);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Bulk delete children
+ * @route   POST /api/children/bulk-delete
+ * @access  Private (Admin, Manager)
+ */
+export const bulkDeleteChildren = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+
+    // Validate input
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, 'No child IDs provided');
+    }
+
+    // Validate all IDs are valid ObjectIds
+    const mongoose = (await import('mongoose')).default;
+    const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    if (validIds.length === 0) {
+      return sendError(res, 400, 'No valid child IDs provided');
+    }
+
+    // Get children names for audit log before deletion
+    const childrenToDelete = await Child.find({ _id: { $in: validIds } }).select('firstName lastName');
+    const childrenNames = childrenToDelete.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+
+    // Delete all children
+    const result = await Child.deleteMany({ _id: { $in: validIds } });
+
+    // Audit log
+    if (req.audit && result.deletedCount > 0) {
+      await req.audit.log({
+        action: 'BULK_DELETE',
+        resourceType: 'Child',
+        description: `Bulk deleted ${result.deletedCount} children: ${childrenNames}`,
+        metadata: { deletedCount: result.deletedCount, childrenIds: validIds }
+      });
+    }
+
+    sendSuccess(res, 200, `${result.deletedCount} children deleted successfully`, {
+      deletedCount: result.deletedCount,
+      requestedCount: ids.length,
+      validCount: validIds.length
+    });
   } catch (error) {
     next(error);
   }

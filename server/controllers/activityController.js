@@ -7,6 +7,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES } from '../utils/constants.js';
+import { notifyActivityScheduled } from '../utils/notificationHelper.js';
 
 /**
  * @desc    Create activity log
@@ -67,11 +68,40 @@ export const createActivity = async (req, res, next) => {
     const activity = await Activity.create(activityData);
 
     await activity.populate([
-      { path: 'child', select: 'firstName lastName photo' },
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id' } },
       { path: 'group', select: 'name maxCapacity', populate: { path: 'class', select: 'name' } },
       { path: 'class', select: 'name ageRange' },
       { path: 'loggedBy', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
+
+    // Notify relevant parents
+    const io = req.app.get('io');
+    const parentIds = new Set();
+    
+    // If activity is for specific child, notify their parents
+    if (activity.child?.parents) {
+      activity.child.parents.forEach(p => {
+        if (p.parent?._id) parentIds.add(p.parent._id.toString());
+      });
+    }
+    
+    // If activity is for group or class, get all children's parents
+    if (activity.group || activity.class) {
+      const query = {};
+      if (activity.group) query.assignedGroup = activity.group._id;
+      if (activity.class) query.assignedClass = activity.class._id;
+      
+      const children = await Child.find(query).populate('parents.parent', '_id');
+      children.forEach(child => {
+        child.parents?.forEach(p => {
+          if (p.parent?._id) parentIds.add(p.parent._id.toString());
+        });
+      });
+    }
+    
+    if (parentIds.size > 0) {
+      await notifyActivityScheduled(activity, Array.from(parentIds), io);
+    }
 
     sendSuccess(res, 201, 'Activity log created successfully', activity);
   } catch (error) {

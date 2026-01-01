@@ -21,6 +21,10 @@ const absenceExcuseSchema = new mongoose.Schema(
       required: [true, 'Reason for absence is required'],
       maxlength: [500, 'Reason cannot exceed 500 characters'],
     },
+    description: {
+      type: String,
+      maxlength: [1000, 'Description cannot exceed 1000 characters'],
+    },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],

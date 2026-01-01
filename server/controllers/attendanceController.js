@@ -5,6 +5,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES, ATTENDANCE_STATUS } from '../utils/constants.js';
+import { notifyAttendanceMarked } from '../utils/notificationHelper.js';
 
 /**
  * @desc    Create attendance record
@@ -46,19 +47,21 @@ export const createAttendance = async (req, res, next) => {
     }
 
     // Check if attendance already exists for this child on this date
-    // Parse date string as UTC date (input is "YYYY-MM-DD" format from frontend)
+    // Parse date string to local date (input is "YYYY-MM-DD" format from frontend)
     let attendanceDate;
     if (typeof date === 'string') {
-      // Create UTC date at start of day from string "YYYY-MM-DD"
-      attendanceDate = new Date(date + 'T00:00:00.000Z');
+      // Parse as local date by using YYYY-MM-DD format (no timezone specifier)
+      const parts = date.split('-');
+      attendanceDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      attendanceDate.setHours(0, 0, 0, 0);
     } else {
       attendanceDate = new Date(date || Date.now());
-      attendanceDate.setUTCHours(0, 0, 0, 0);
+      attendanceDate.setHours(0, 0, 0, 0);
     }
     
-    // For querying, check for this date
+    // For querying, check for this date (next day at midnight)
     const nextDay = new Date(attendanceDate);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    nextDay.setDate(nextDay.getDate() + 1);
 
     const existingAttendance = await Attendance.findOne({
       child,
@@ -95,9 +98,19 @@ export const createAttendance = async (req, res, next) => {
     }
 
     await attendance.populate([
-      { path: 'child', select: 'firstName lastName photo' },
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id' } },
       { path: 'recordedBy', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
+
+    // Notify all parents of the child
+    if (attendance.child?.parents) {
+      const io = req.app.get('io');
+      for (const parentInfo of attendance.child.parents) {
+        if (parentInfo.parent && parentInfo.parent._id) {
+          await notifyAttendanceMarked(attendance, parentInfo.parent, io);
+        }
+      }
+    }
 
     sendSuccess(res, 201, 'Attendance record created successfully', attendance);
   } catch (error) {
@@ -123,25 +136,14 @@ export const getAllAttendance = async (req, res, next) => {
       query.child = { $in: children.map((c) => c._id) };
     }
 
-    // If user is teacher, only show attendance for their class children
+    // If user is teacher, only show attendance for their class children (from middleware)
     if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
-      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
-      
-      console.log('🎓 Teacher staff info:', { 
-        userId: req.user.id, 
-        hasStaffInfo: !!staffInfo,
-        assignedClasses: staffInfo?.assignedClasses?.map(c => c._id),
-        classCount: staffInfo?.assignedClasses?.length 
-      });
-      
-      if (staffInfo && staffInfo.assignedClasses && staffInfo.assignedClasses.length > 0) {
-        const classIds = staffInfo.assignedClasses.map(cls => cls._id);
-        const classChildren = await Child.find({ assignedClass: { $in: classIds } }).select('_id');
-        console.log('📚 Children in classes:', classChildren.map(c => c._id));
+      // Use the class IDs from middleware
+      if (req.teacherAssignedClassIds && req.teacherAssignedClassIds.length > 0) {
+        const classChildren = await Child.find({ assignedClass: { $in: req.teacherAssignedClassIds } }).select('_id');
         query.child = { $in: classChildren.map((c) => c._id) };
       } else {
         // Teacher has no assigned classes, return empty result
-        console.log('⚠️ Teacher has no assigned classes');
         return sendPaginatedResponse(res, 200, 'No attendance records available', [], { page, limit, total: 0 });
       }
     }
@@ -153,16 +155,18 @@ export const getAllAttendance = async (req, res, next) => {
 
     // Filter by specific date
     if (date) {
-      // Parse as UTC date at start and end of day
+      // Parse as local date at start and end of day
       let filterDate;
       if (typeof date === 'string') {
-        filterDate = new Date(date + 'T00:00:00.000Z');
+        const parts = date.split('-');
+        filterDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        filterDate.setHours(0, 0, 0, 0);
       } else {
         filterDate = new Date(date);
-        filterDate.setUTCHours(0, 0, 0, 0);
+        filterDate.setHours(0, 0, 0, 0);
       }
       const nextDay = new Date(filterDate);
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      nextDay.setDate(nextDay.getDate() + 1);
       query.date = { $gte: filterDate, $lt: nextDay };
     }
 

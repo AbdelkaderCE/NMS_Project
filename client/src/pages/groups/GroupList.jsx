@@ -48,10 +48,10 @@ const GroupList = ({ onSearchClick }) => {
     try {
       setLoading(true);
       const [groupsRes, classesRes, staffRes, childrenRes] = await Promise.all([
-        groupAPI.getAll(),
-        classAPI.getAll(),
-        staffAPI.getAll({ position: 'teacher' }), // request only teachers from backend
-        childrenAPI.getAll(),
+        groupAPI.getAll({ limit: 100 }),
+        classAPI.getAll({ limit: 100 }),
+        staffAPI.getAll({ position: 'teacher', limit: 100 }), // request only teachers from backend
+        childrenAPI.getAll({ limit: 100 }),
       ]);
       setGroups(groupsRes.data || []);
       setClasses(classesRes.data || []);

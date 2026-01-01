@@ -40,11 +40,11 @@ const MessageList = ({ onSearchClick }) => {
       let response;
       
       if (activeTab === 'inbox') {
-        response = await messageAPI.getInbox();
+        response = await messageAPI.getInbox({ limit: 100 });
       } else if (activeTab === 'sent') {
-        response = await messageAPI.getSent();
+        response = await messageAPI.getSent({ limit: 100 });
       } else if (activeTab === 'archived') {
-        response = await messageAPI.getArchived();
+        response = await messageAPI.getArchived({ limit: 100 });
       }
       
       // Extract messages from paginated response
@@ -61,7 +61,7 @@ const MessageList = ({ onSearchClick }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await contactsAPI.getAll();
+      const response = await contactsAPI.getAll({ limit: 100 });
       setUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);

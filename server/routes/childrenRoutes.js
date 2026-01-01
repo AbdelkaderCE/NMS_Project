@@ -12,6 +12,7 @@ import {
   removeEmergencyContact,
   getChildrenStats,
   getChildrenByParent,
+  bulkDeleteChildren,
 } from '../controllers/childrenController.js';
 import {
   createChildValidation,
@@ -40,6 +41,14 @@ router.get(
   '/stats',
   authorize(ROLES.ADMIN, ROLES.STAFF),
   getChildrenStats
+);
+
+// Bulk operations (Admin, Manager only)
+router.post(
+  '/bulk-delete',
+  authorize(ROLES.ADMIN, ROLES.STAFF),
+  allowAdminOrStaffPositions('manager'),
+  bulkDeleteChildren
 );
 
 // Get children by parent

@@ -36,6 +36,7 @@ export const childrenAPI = {
   create: (data) => api.post('/children', data),
   update: (id, data) => api.put(`/children/${id}`, data),
   delete: (id) => api.delete(`/children/${id}`),
+  bulkDelete: (data) => api.post('/children/bulk-delete', data),
   addParent: (id, data) => api.post(`/children/${id}/parents`, data),
   removeParent: (id, parentId) => api.delete(`/children/${id}/parents/${parentId}`),
   updateMedical: (id, data) => api.put(`/children/${id}/medical`, data),
@@ -179,6 +180,15 @@ export const auditLogAPI = {
   getStats: () => api.get('/audit-logs/stats'),
   getByResource: (resourceType, resourceId, params) => api.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params }),
   getByUser: (userId, params) => api.get(`/audit-logs/user/${userId}`, { params }),
+};
+
+// Absence Excuse APIs
+export const absenceExcuseAPI = {
+  getAll: (params) => api.get('/absence-excuses', { params }),
+  getById: (id) => api.get(`/absence-excuses/${id}`),
+  submit: (data) => api.post('/absence-excuses', data),
+  review: (id, data) => api.put(`/absence-excuses/${id}/review`, data),
+  delete: (id) => api.delete(`/absence-excuses/${id}`),
 };
 
 // Search API

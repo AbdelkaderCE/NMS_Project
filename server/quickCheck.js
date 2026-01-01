@@ -74,14 +74,21 @@ const checkDB = async () => {
     console.log('\n📚 All class IDs:');
     classes.forEach(c => console.log(`  ${c._id} - ${c.name}`));
     
-        // Check specific user ID from the logs
-        const testUserId = '6932b48ff3b7f0bdca1caeba';
-        console.log(`\n🔍 Checking user ID: ${testUserId}`);
+    // Check specific user ID from the logs
+    const testUserId = '6932b48ff3b7f0bdca1caeba';
+    console.log(`\n🔍 Checking user ID: ${testUserId}`);
     
-        const user = await db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(testUserId) });
-        console.log('User found:', user ? `${user.email} (${user.role})` : 'NOT FOUND');
+    const user = await db.collection('users').findOne({ _id: new mongoose.Types.ObjectId(testUserId) });
+    console.log('User found:', user ? `${user.email} (${user.role})` : 'NOT FOUND');
     
-        if (user && user.role === 'staff') {
+    // Check admin user
+    const adminUser = await db.collection('users').findOne({ email: 'admin@school.dev' });
+    console.log(`\n👨‍💼 Admin user:`, adminUser ? `${adminUser._id} - ${adminUser.email} (${adminUser.role})` : 'NOT FOUND');
+    
+    if (adminUser) {
+      const adminStaffRecord = await db.collection('staffs').findOne({ user: adminUser._id });
+      console.log('Admin has staff record?', adminStaffRecord ? `YES - Position: ${adminStaffRecord.position}` : 'NO (correct)');
+    }        if (user && user.role === 'staff') {
           const staffRecord = await db.collection('staffs').findOne({ user: new mongoose.Types.ObjectId(testUserId) });
           console.log('Staff record:', staffRecord ? `Position: ${staffRecord.position}, Classes: ${staffRecord.assignedClasses?.length || 0}` : 'NOT FOUND');
       

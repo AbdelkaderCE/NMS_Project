@@ -23,7 +23,7 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { limit: 100 };
       if (filter !== 'all') params.status = filter;
       if (search) params.search = search;
       

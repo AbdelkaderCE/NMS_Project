@@ -71,11 +71,11 @@ const ActivityList = ({ onSearchClick }) => {
       } else {
         // For admin/staff, fetch all data
         const [activitiesRes, childrenRes, staffRes, classesRes, groupsRes] = await Promise.all([
-          activityAPI.getAll(),
-          childrenAPI.getAll(),
-          staffAPI.getAll(),
-          classAPI.getAll(),
-          groupAPI.getAll(),
+          activityAPI.getAll({ limit: 100 }),
+          childrenAPI.getAll({ limit: 100 }),
+          staffAPI.getAll({ limit: 100 }),
+          classAPI.getAll({ limit: 100 }),
+          groupAPI.getAll({ limit: 100 }),
         ]);
         setActivities(activitiesRes.data);
         setChildren(childrenRes.data);

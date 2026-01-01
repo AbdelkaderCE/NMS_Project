@@ -128,15 +128,19 @@ export const notifyActivityScheduled = async (activity, participants, io) => {
 
 export const notifyAttendanceMarked = async (attendance, parentUser, io) => {
   try {
+    const childName = attendance.child?.firstName 
+      ? `${attendance.child.firstName} ${attendance.child.lastName || ''}`.trim()
+      : 'your child';
     await createNotification(
       {
         recipient: parentUser._id,
         type: 'attendance',
         title: 'Attendance Marked',
-        message: `Attendance has been marked for ${attendance.child?.name || 'your child'} - Status: ${attendance.status}`,
-        link: '/attendance',
+        message: `Attendance has been marked for ${childName} - Status: ${attendance.status}`,
+        link: `/children/${attendance.child?._id}`,
         metadata: {
           attendanceId: attendance._id,
+          childId: attendance.child?._id,
           status: attendance.status,
           date: attendance.date,
         },
@@ -214,5 +218,70 @@ export const notifySystemMessage = async (recipients, title, message, io) => {
     await Promise.all(notifications);
   } catch (error) {
     console.error('Error creating system notification:', error);
+  }
+};
+
+export const notifyAbsenceExcuseSubmitted = async (excuse, teacherIds, io) => {
+  try {
+    const childName = excuse.child?.firstName
+      ? `${excuse.child.firstName} ${excuse.child.lastName || ''}`.trim()
+      : 'a child';
+    const excuseDate = new Date(excuse.absenceDate);
+    const dateStr = excuseDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+    const notifications = teacherIds.map((teacherId) =>
+      createNotification(
+        {
+          recipient: teacherId,
+          type: 'system',
+          title: 'New Absence Excuse Request',
+          message: `Absence excuse submitted for ${childName} on ${dateStr}`,
+          link: '/absence-excuses',
+          metadata: {
+            excuseId: excuse._id,
+            childId: excuse.child?._id,
+            date: excuse.absenceDate,
+          },
+          priority: 'high',
+        },
+        io
+      )
+    );
+
+    await Promise.all(notifications);
+  } catch (error) {
+    console.error('Error creating absence excuse notification:', error);
+  }
+};
+
+export const notifyAbsenceExcuseStatusChanged = async (excuse, parentId, io) => {
+  try {
+    const statusText = excuse.status === 'approved' ? 'approved' : 'rejected';
+    const childName = excuse.child?.firstName
+      ? `${excuse.child.firstName} ${excuse.child.lastName || ''}`.trim()
+      : 'your child';
+    await createNotification(
+      {
+        recipient: parentId,
+        type: 'system',
+        title: `Absence Excuse ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
+        message: `Your absence excuse for ${childName} has been ${statusText}.`,
+        link: `/children/${excuse.child?._id}`,
+        metadata: {
+          excuseId: excuse._id,
+          childId: excuse.child?._id,
+          status: excuse.status,
+          date: excuse.absenceDate,
+        },
+        priority: 'normal',
+      },
+      io
+    );
+  } catch (error) {
+    console.error('Error creating absence excuse status notification:', error);
   }
 };

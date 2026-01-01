@@ -5,11 +5,14 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Alert from '../../components/common/Alert';
+import BulkActionsToolbar, { commonBulkActions } from '../../components/common/BulkActionsToolbar';
+import Pagination from '../../components/common/Pagination';
 import { staffAPI, userAPI } from '../../api';
 import api from '../../api/axios';
 import { FiPlus, FiEdit2, FiUserMinus, FiUserCheck, FiSearch, FiUser, FiPhone, FiMail } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/currency';
+import { exportStaffToCSV } from '../../utils/csvExport';
 
 const StaffList = ({ onSearchClick }) => {
   const { user } = useAuth();
@@ -41,6 +44,9 @@ const StaffList = ({ onSearchClick }) => {
     },
   });
   const [alert, setAlert] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchStaff();
@@ -57,7 +63,7 @@ const StaffList = ({ onSearchClick }) => {
 
   const fetchStaff = async () => {
     try {
-      const response = await staffAPI.getAll();
+      const response = await staffAPI.getAll({ limit: 100 });
       setStaff(response.data || []);
     } catch (error) {
       showAlert('error', 'Failed to fetch staff members');
@@ -250,12 +256,62 @@ const StaffList = ({ onSearchClick }) => {
     }
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const currentPageItems = getCurrentPageItems();
+      const currentPageIds = currentPageItems.map(s => s._id);
+      setSelectedStaff(currentPageIds);
+    } else {
+      setSelectedStaff([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedStaff.includes(id)) {
+      setSelectedStaff(selectedStaff.filter(staffId => staffId !== id));
+    } else {
+      setSelectedStaff([...selectedStaff, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to deactivate ${selectedStaff.length} staff members?\\n\\nThey will not be able to log in.`)) return;
+    
+    try {
+      const staffToDeactivate = staff.filter(s => selectedStaff.includes(s._id));
+      await Promise.all(staffToDeactivate.map(s => userAPI.deactivate(s.user._id)));
+      showAlert('success', `${selectedStaff.length} staff members deactivated successfully`);
+      setSelectedStaff([]);
+      fetchStaff();
+    } catch (error) {
+      showAlert('error', 'Failed to deactivate selected staff members');
+    }
+  };
+
+  const handleBulkExport = () => {
+    const staffToExport = staff.filter(s => selectedStaff.includes(s._id));
+    exportStaffToCSV(staffToExport);
+    showAlert('success', `${selectedStaff.length} staff members exported to CSV`);
+  };
+
   const filteredStaff = staff.filter(s => {
     const fullName = `${s.user?.firstName} ${s.user?.lastName}`.toLowerCase();
     const position = s.position?.toLowerCase() || '';
     const search = searchTerm.toLowerCase();
     return fullName.includes(search) || position.includes(search);
   });
+
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const getCurrentPageItems = () => filteredStaff.slice(indexOfFirstItem, indexOfLastItem);
+  const currentPageStaff = getCurrentPageItems();
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const positionBadgeColor = (position) => {
     const colors = {
@@ -339,10 +395,52 @@ const StaffList = ({ onSearchClick }) => {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredStaff.map((staffMember) => (
-              <Card key={staffMember._id} className="hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
+          <>
+            {/* Selection Controls */}
+            {currentPageStaff.length > 0 && (
+              <Card className="mb-4">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaff.length === currentPageStaff.length && currentPageStaff.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Select all on this page ({currentPageStaff.length} items)
+                    </span>
+                  </label>
+                  {selectedStaff.length > 0 && (
+                    <span className="text-sm text-gray-600">
+                      {selectedStaff.length} selected
+                    </span>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {currentPageStaff.map((staffMember) => (
+                <Card 
+                  key={staffMember._id} 
+                  className={`
+                    relative hover:shadow-lg transition-all
+                    ${selectedStaff.includes(staffMember._id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                  `}
+                >
+                  {/* Selection Checkbox */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaff.includes(staffMember._id)}
+                      onChange={() => handleSelectOne(staffMember._id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between mb-4 ml-8">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
                       {staffMember.user?.firstName} {staffMember.user?.lastName}
@@ -419,7 +517,31 @@ const StaffList = ({ onSearchClick }) => {
               </Card>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredStaff.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
         )}
+
+        {/* Bulk Actions Toolbar */}
+        <BulkActionsToolbar
+          selectedCount={selectedStaff.length}
+          onClearSelection={() => setSelectedStaff([])}
+          actions={[
+            commonBulkActions.delete(handleBulkDelete),
+            commonBulkActions.export(handleBulkExport),
+          ]}
+        />
 
         {/* Add/Edit Modal */}
         <Modal

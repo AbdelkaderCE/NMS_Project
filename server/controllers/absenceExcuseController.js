@@ -1,7 +1,7 @@
 import AbsenceExcuse from '../models/AbsenceExcuse.js';
 import Child from '../models/Child.js';
 import Staff from '../models/Staff.js';
-import Notification from '../models/Notification.js';
+import { notifyAbsenceExcuseSubmitted, notifyAbsenceExcuseStatusChanged } from '../utils/notificationHelper.js';
 
 /**
  * @desc    Submit absence excuse (Parents only)
@@ -10,7 +10,7 @@ import Notification from '../models/Notification.js';
  */
 export const submitAbsenceExcuse = async (req, res) => {
   try {
-    const { child, absenceDate, reason, attachments } = req.body;
+    const { child, absenceDate, reason, description, attachments } = req.body;
 
     // Verify child exists and parent has access
     const childDoc = await Child.findById(child);
@@ -52,6 +52,7 @@ export const submitAbsenceExcuse = async (req, res) => {
       submittedBy: req.user.id,
       absenceDate: new Date(absenceDate),
       reason,
+      description,
       attachments: attachments || [],
     });
 
@@ -59,22 +60,16 @@ export const submitAbsenceExcuse = async (req, res) => {
     await absenceExcuse.populate('child', 'firstName lastName assignedClass');
     await absenceExcuse.populate('submittedBy', 'firstName lastName email');
 
-    // Get teacher assigned to this child's class
+    // Get teacher assigned to this child's class and notify them
     if (childDoc.assignedClass) {
       const teachers = await Staff.find({
         assignedClasses: childDoc.assignedClass,
       }).populate('user', '_id');
 
-      // Create notifications for teachers
-      for (const teacher of teachers) {
-        await Notification.create({
-          recipient: teacher.user._id,
-          type: 'absence_excuse_submitted',
-          title: 'New Absence Excuse Submitted',
-          message: `${childDoc.firstName} ${childDoc.lastName} has a new absence excuse pending review`,
-          relatedId: absenceExcuse._id,
-          relatedModel: 'AbsenceExcuse',
-        });
+      const teacherIds = teachers.map(t => t.user._id).filter(Boolean);
+      if (teacherIds.length > 0) {
+        const io = req.app.get('io');
+        await notifyAbsenceExcuseSubmitted(absenceExcuse, teacherIds, io);
       }
     }
 
@@ -349,14 +344,8 @@ export const reviewAbsenceExcuse = async (req, res) => {
     await excuse.populate('reviewedBy', 'employeeId position');
 
     // Send notification to parent
-    await Notification.create({
-      recipient: excuse.submittedBy._id,
-      type: `absence_excuse_${action}d`,
-      title: `Absence Excuse ${action === 'approve' ? 'Approved' : 'Rejected'}`,
-      message: `Your absence excuse for ${excuse.child.firstName} ${excuse.child.lastName} has been ${action}d`,
-      relatedId: excuse._id,
-      relatedModel: 'AbsenceExcuse',
-    });
+    const io = req.app.get('io');
+    await notifyAbsenceExcuseStatusChanged(excuse, excuse.submittedBy._id, io);
 
     res.status(200).json({
       success: true,

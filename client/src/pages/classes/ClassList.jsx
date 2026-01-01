@@ -55,8 +55,8 @@ const ClassList = ({ onSearchClick }) => {
     try {
       setLoading(true);
       const [classesRes, groupsRes] = await Promise.all([
-        classAPI.getAll(),
-        groupAPI.getAll(),
+        classAPI.getAll({ limit: 100 }),
+        groupAPI.getAll({ limit: 100 }),
       ]);
       setClasses(classesRes.data || []);
       setGroups(groupsRes.data || []);

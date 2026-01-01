@@ -4,6 +4,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES, MESSAGE_STATUS } from '../utils/constants.js';
+import { notifyNewMessage } from '../utils/notificationHelper.js';
 
 /**
  * @desc    Send message
@@ -46,6 +47,9 @@ export const sendMessage = async (req, res, next) => {
         timestamp: message.createdAt,
       });
     }
+
+    // Create notification for recipient
+    await notifyNewMessage(message, recipient, io);
 
     sendSuccess(res, 201, 'Message sent successfully', message);
   } catch (error) {

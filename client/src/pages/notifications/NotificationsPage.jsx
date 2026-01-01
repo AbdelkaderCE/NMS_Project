@@ -34,11 +34,14 @@ const NotificationsPage = ({ onSearchClick }) => {
       if (filter === 'read') params.read = true;
 
       const response = await notificationAPI.getNotifications(params);
-      setNotifications(response.data.notifications || []);
-      setPagination(response.data.pagination || null);
-      setUnreadCount(response.data.unreadCount || 0);
+      // Response structure: { success, message, data: { notifications, unreadCount, pagination } }
+      const { notifications = [], unreadCount = 0, pagination = null } = response.data || response;
+      setNotifications(notifications);
+      setPagination(pagination);
+      setUnreadCount(unreadCount);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

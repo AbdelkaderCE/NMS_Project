@@ -39,35 +39,19 @@ export const classTeacherAuth = async (req, res, next) => {
       return sendError(res, 404, 'Child not found');
     }
 
-    // Get teacher's assigned classes (which are actually Groups)
-    const staffInfo = await Staff.findOne({ user: req.user.id })
-      .populate('assignedClasses');
+    // Get teacher's assigned classes (assignedClasses field contains Class IDs)
+    const staffInfo = await Staff.findOne({ user: req.user.id });
     
     if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
       return sendError(res, 403, 'You have no assigned classes');
     }
 
-    // Check if child's assigned group is in teacher's assigned groups
-    const assignedGroupId = child.assignedGroup?._id?.toString();
-    let hasAccess = false;
+    // assignedClasses contains Class IDs directly
+    const teacherClassIds = staffInfo.assignedClasses.map(id => id.toString());
+    const childClassId = child.assignedClass?._id?.toString();
     
-    // First check if child is in one of teacher's assigned groups
-    if (assignedGroupId) {
-      hasAccess = staffInfo.assignedClasses.some(
-        group => group._id.toString() === assignedGroupId
-      );
-    }
-    
-    // Also check if child's assigned class matches one of the teacher's class assignments
-    if (!hasAccess) {
-      const assignedClassId = child.assignedClass?._id?.toString();
-      if (assignedClassId) {
-        const teacherClassIds = staffInfo.assignedClasses
-          .map(group => group.class?.toString())
-          .filter(Boolean);
-        hasAccess = teacherClassIds.includes(assignedClassId);
-      }
-    }
+    // Check if child's class is in teacher's assigned classes
+    const hasAccess = childClassId && teacherClassIds.includes(childClassId);
 
     if (!hasAccess) {
       return sendError(res, 403, 'This child is not in any of your assigned classes or groups');
@@ -99,21 +83,24 @@ export const teacherClassFilter = async (req, res, next) => {
       return next(); // Not a teacher, pass through
     }
 
-    // Get teacher's assigned groups (stored in assignedClasses field)
-    const staffInfo = await Staff.findOne({ user: req.user.id })
-      .populate('assignedClasses'); // This actually populates Groups
+    // Get teacher's assigned classes (stored in assignedClasses field as Class IDs)
+    const staffInfo = await Staff.findOne({ user: req.user.id });
     
     if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
-      // Teacher has no assigned groups, attach empty filter
+      // Teacher has no assigned classes, attach empty filter
       req.teacherAssignedGroupIds = [];
       req.teacherAssignedClassIds = [];
       req.isTeacherWithoutClasses = true;
       return next();
     }
 
-    // Extract group IDs and their class IDs
-    const groupIds = staffInfo.assignedClasses.map(group => group._id);
-    const classIds = [...new Set(staffInfo.assignedClasses.map(group => group.class).filter(Boolean))];
+    // assignedClasses contains Class IDs directly
+    const classIds = staffInfo.assignedClasses;
+    
+    // Find all groups that belong to these classes
+    const Group = (await import('../models/Group.js')).default;
+    const groups = await Group.find({ class: { $in: classIds } }).select('_id');
+    const groupIds = groups.map(g => g._id);
     
     req.teacherAssignedGroupIds = groupIds;
     req.teacherAssignedClassIds = classIds;

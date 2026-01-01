@@ -64,11 +64,17 @@ const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
+      console.log('🔔 Fetching notifications...');
       const response = await notificationAPI.getNotifications({ limit: 20 });
-      setNotifications(response?.data?.notifications || []);
-      setUnreadCount(response?.data?.unreadCount || 0);
+      console.log('🔔 Notifications response:', response);
+      // Response structure: { success, message, data: { notifications, unreadCount, pagination } }
+      const { notifications = [], unreadCount = 0 } = response.data || response;
+      setNotifications(notifications);
+      setUnreadCount(unreadCount);
+      console.log('🔔 Set notifications:', notifications?.length, 'Unread:', unreadCount);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ Error fetching notifications:', error);
+      console.error('❌ Error response:', error.response);
       setNotifications([]);
       setUnreadCount(0);
     } finally {
@@ -78,10 +84,16 @@ const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
 
   const fetchUnreadCount = async () => {
     try {
+      console.log('🔔 Fetching unread count...');
       const response = await notificationAPI.getUnreadCount();
-      setUnreadCount(response?.data?.unreadCount || 0);
+      console.log('🔔 Unread count response:', response);
+      // Response structure: { success, message, unreadCount } - no nested data
+      const unreadCount = response?.unreadCount || response?.data?.unreadCount || 0;
+      setUnreadCount(unreadCount);
+      console.log('🔔 Set unread count to:', unreadCount);
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error('❌ Error fetching unread count:', error);
+      console.error('❌ Error response:', error.response);
       setUnreadCount(0);
     }
   };
