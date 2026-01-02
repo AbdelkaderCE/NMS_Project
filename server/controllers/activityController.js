@@ -70,9 +70,37 @@ export const createActivity = async (req, res, next) => {
 
     // Send real-time notification to parents via Socket.IO
     const io = req.app.get('io');
-    if (io && activity.child) {
-      // Get parent IDs from the child
-      const parentIds = activity.child.parents?.map(p => p.parent?._id?.toString() || p.parent?.toString()) || [];
+    if (io) {
+      let parentIds = [];
+      
+      // Get parent IDs based on activity target
+      if (activity.child) {
+        // For individual child activities
+        parentIds = activity.child.parents?.map(p => p.parent?._id?.toString() || p.parent?.toString()) || [];
+      } else if (activity.group || activity.class) {
+        // For group or class activities, get all children's parents
+        let targetChildren = [];
+        
+        if (activity.group) {
+          // Get children in the group
+          const groupChildren = await Child.find({ assignedGroup: activity.group._id }).populate('parents.parent', '_id');
+          targetChildren = groupChildren;
+        } else if (activity.class) {
+          // Get children in the class
+          const classChildren = await Child.find({ assignedClass: activity.class._id }).populate('parents.parent', '_id');
+          targetChildren = classChildren;
+        }
+        
+        // Extract unique parent IDs
+        const parentIdSet = new Set();
+        targetChildren.forEach(child => {
+          child.parents?.forEach(p => {
+            const parentId = p.parent?._id?.toString() || p.parent?.toString();
+            if (parentId) parentIdSet.add(parentId);
+          });
+        });
+        parentIds = Array.from(parentIdSet);
+      }
       
       // Format notification message
       let targetName = '';
