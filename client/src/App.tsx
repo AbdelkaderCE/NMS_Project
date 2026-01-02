@@ -29,6 +29,15 @@ import UserProfile from './pages/profile/UserProfile';
 import AbsenceExcusesPage from './pages/absenceExcuses/AbsenceExcusesPage';
 import DailyReportsPage from './pages/reports/DailyReportsPage';
 import SearchModal from './components/search/SearchModal';
+import DocsOverview from './pages/docs/DocsOverview';
+import DocsIntroduction from './pages/docs/DocsIntroduction';
+import DocsObjectives from './pages/docs/DocsObjectives';
+import DocsTechnologies from './pages/docs/DocsTechnologies';
+import DocsAnalysis from './pages/docs/DocsAnalysis';
+import DocsDesign from './pages/docs/DocsDesign';
+import DocsImplementation from './pages/docs/DocsImplementation';
+import DocsTesting from './pages/docs/DocsTesting';
+import DocsConclusion from './pages/docs/DocsConclusion';
 
 function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -235,6 +244,80 @@ function App() {
             element={
               <PrivateRoute>
                 <div>Settings Page - Coming Soon</div>
+              </PrivateRoute>
+            }
+          />
+          
+          {/* Documentation Routes */}
+          <Route
+            path="/docs"
+            element={
+              <PrivateRoute>
+                <DocsOverview onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/introduction"
+            element={
+              <PrivateRoute>
+                <DocsIntroduction onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/objectives"
+            element={
+              <PrivateRoute>
+                <DocsObjectives onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/technologies"
+            element={
+              <PrivateRoute>
+                <DocsTechnologies onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/analysis"
+            element={
+              <PrivateRoute>
+                <DocsAnalysis onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/design"
+            element={
+              <PrivateRoute>
+                <DocsDesign onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/implementation"
+            element={
+              <PrivateRoute>
+                <DocsImplementation onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/testing"
+            element={
+              <PrivateRoute>
+                <DocsTesting onSearchClick={handleSearchClick} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/docs/conclusion"
+            element={
+              <PrivateRoute>
+                <DocsConclusion onSearchClick={handleSearchClick} />
               </PrivateRoute>
             }
           />

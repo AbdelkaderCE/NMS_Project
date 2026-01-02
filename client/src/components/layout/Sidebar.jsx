@@ -15,7 +15,8 @@ import {
   FiFileText,
   FiShield,
   FiUser,
-  FiBriefcase
+  FiBriefcase,
+  FiBook
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -40,6 +41,7 @@ const Sidebar = () => {
     { name: 'Chat', href: '/chat', icon: FiMessageCircle, roles: ['admin', 'staff', 'parent'] },
     { name: 'Enrollment Requests', href: '/enrollment/requests', icon: FiFileText, roles: ['admin', 'staff'], staffPositions: ['manager', 'receptionist'] },
     { name: 'Audit Logs', href: '/audit-logs', icon: FiShield, roles: ['admin'] },
+    { name: 'Documentation', href: '/docs', icon: FiBook, roles: ['admin', 'staff', 'parent'] },
   ];
 
   const filteredNavigation = navigation.filter(item => {
