@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axiosConfig';
+import api from '../api/axios';
 import './AbsenceExcuseReview.css';
 
 const AbsenceExcuseReview = () => {
