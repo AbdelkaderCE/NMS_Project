@@ -35,7 +35,9 @@ const ActivityCalendar = ({ onSearchClick }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'parent' && children.length === 0) {
+    if (!user) return;
+    
+    if (user.role === 'parent' && children.length === 0) {
       fetchChildren();
     }
   }, [user]);
