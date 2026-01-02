@@ -99,7 +99,7 @@ export const notifyStaffAdded = async (staff, io) => {
 
 export const notifyActivityScheduled = async (activity, participants, io) => {
   try {
-    const activityName = activity.name || activity.type || 'Activity';
+    const activityName = activity.title || activity.type || 'Activity';
     const notifications = participants.map((userId) =>
       createNotification(
         {
@@ -109,7 +109,7 @@ export const notifyActivityScheduled = async (activity, participants, io) => {
           message: `${activityName} has been scheduled for ${new Date(
             activity.date
           ).toLocaleDateString()}.`,
-          link: '/calendar',
+          link: '/activities/calendar',
           metadata: {
             activityId: activity._id,
             activityName: activityName,
