@@ -23,7 +23,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const ActivityCalendar = () => {
+const ActivityCalendar = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [children, setChildren] = useState([]);

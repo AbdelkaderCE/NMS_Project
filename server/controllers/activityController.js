@@ -62,11 +62,46 @@ export const createActivity = async (req, res, next) => {
     });
 
     await activity.populate([
-      { path: 'child', select: 'firstName lastName photo' },
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id firstName lastName' } },
       { path: 'group', select: 'name maxCapacity', populate: { path: 'class', select: 'name' } },
       { path: 'class', select: 'name ageRange' },
       { path: 'loggedBy', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
+
+    // Send real-time notification to parents via Socket.IO
+    const io = req.app.get('io');
+    if (io && activity.child) {
+      // Get parent IDs from the child
+      const parentIds = activity.child.parents?.map(p => p.parent?._id?.toString() || p.parent?.toString()) || [];
+      
+      // Format notification message
+      let targetName = '';
+      if (activity.child) {
+        targetName = `${activity.child.firstName} ${activity.child.lastName}`;
+      } else if (activity.group) {
+        targetName = activity.group.name;
+      } else if (activity.class) {
+        targetName = activity.class.name;
+      }
+      
+      const notificationMessage = `${activity.title} has been scheduled for ${new Date(activity.date).toLocaleDateString()}`;
+      
+      // Emit to each parent
+      parentIds.forEach(parentId => {
+        io.to(`user:${parentId}`).emit('activity-notification', {
+          type: 'activity',
+          title: 'New Activity Scheduled',
+          message: notificationMessage,
+          activityId: activity._id,
+          activityTitle: activity.title,
+          activityType: activity.type,
+          activityDate: activity.date,
+          targetName: targetName,
+          timestamp: new Date(),
+          link: '/activities/calendar',
+        });
+      });
+    }
 
     sendSuccess(res, 201, 'Activity log created successfully', activity);
   } catch (error) {
