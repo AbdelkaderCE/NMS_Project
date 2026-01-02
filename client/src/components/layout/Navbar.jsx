@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { useNavigate } from 'react-router-dom';
 
+const MAX_NOTIFICATIONS = 10;
+let notificationIdCounter = 0;
+
 const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
   const { user } = useAuth();
   const { socket } = useSocket();
@@ -19,7 +22,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
       console.log('Received activity notification:', data);
       
       const newNotification = {
-        id: Date.now(),
+        id: `notification-${Date.now()}-${++notificationIdCounter}`,
         type: 'activity',
         title: data.title || 'New Activity',
         message: data.message,
@@ -28,7 +31,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen, onSearchClick }) => {
         read: false,
       };
 
-      setNotifications(prev => [newNotification, ...prev].slice(0, 10)); // Keep last 10
+      setNotifications(prev => [newNotification, ...prev].slice(0, MAX_NOTIFICATIONS));
     };
 
     socket.on('activity-notification', handleActivityNotification);

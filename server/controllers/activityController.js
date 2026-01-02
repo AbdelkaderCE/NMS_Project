@@ -9,6 +9,15 @@ import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES } from '../utils/constants.js';
 
 /**
+ * Helper function to extract parent ID from parent reference
+ * Handles both populated and unpopulated parent references
+ */
+const extractParentId = (parent) => {
+  if (!parent) return null;
+  return parent._id?.toString() || parent.toString();
+};
+
+/**
  * @desc    Create activity log
  * @route   POST /api/activities
  * @access  Private (Admin, Staff)
@@ -76,7 +85,7 @@ export const createActivity = async (req, res, next) => {
       // Get parent IDs based on activity target
       if (activity.child) {
         // For individual child activities
-        parentIds = activity.child.parents?.map(p => p.parent?._id?.toString() || p.parent?.toString()) || [];
+        parentIds = activity.child.parents?.map(p => extractParentId(p.parent)).filter(Boolean) || [];
       } else if (activity.group || activity.class) {
         // For group or class activities, get all children's parents
         let targetChildren = [];
@@ -95,7 +104,7 @@ export const createActivity = async (req, res, next) => {
         const parentIdSet = new Set();
         targetChildren.forEach(child => {
           child.parents?.forEach(p => {
-            const parentId = p.parent?._id?.toString() || p.parent?.toString();
+            const parentId = extractParentId(p.parent);
             if (parentId) parentIdSet.add(parentId);
           });
         });
