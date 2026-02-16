@@ -68,9 +68,74 @@ export const getChildren = async (req, res, next) => {
 
     let query = {};
 
+    console.log('🔍 getChildren - User Info:', {
+      userId: req.user.id,
+      role: req.user.role,
+      staffInfo: req.user.staffInfo,
+    });
+
     // If user is a parent, only show their children
     if (req.user.role === ROLES.PARENT) {
       query['parents.parent'] = req.user.id;
+      console.log('👪 Parent query:', query);
+    }
+
+    // If user is staff, check their position and apply filters
+    if (req.user.role === 'staff') {
+      // If staff doesn't have staffInfo, deny access (old accounts without Staff record)
+      if (!req.user.staffInfo) {
+        return sendPaginatedResponse(res, 200, 'No access - staff profile not found', [], {
+          page,
+          limit,
+          totalPages: 0,
+          totalItems: 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        });
+      }
+      
+      const position = req.user.staffInfo.position;
+      
+      // Teachers and assistants only see children in their assigned classes/groups
+      if (position === 'teacher' || position === 'assistant' || position === 'special_educator') {
+        // Check if teacher has assigned classes (from middleware)
+        if (req.isTeacherWithoutClasses) {
+          // Teacher with no assigned classes
+          return sendPaginatedResponse(res, 200, 'No children found - no assigned classes', [], {
+            page,
+            limit,
+            totalPages: 0,
+            totalItems: 0,
+            hasNextPage: false,
+            hasPrevPage: false
+          });
+        }
+
+        // Use assigned group IDs and class IDs from middleware
+        // Children should be in either an assigned group OR an assigned class
+        const conditions = [];
+        if (req.teacherAssignedGroupIds && req.teacherAssignedGroupIds.length > 0) {
+          conditions.push({ assignedGroup: { $in: req.teacherAssignedGroupIds } });
+        }
+        if (req.teacherAssignedClassIds && req.teacherAssignedClassIds.length > 0) {
+          conditions.push({ assignedClass: { $in: req.teacherAssignedClassIds } });
+        }
+
+        if (conditions.length > 0) {
+          query.$or = conditions;
+        } else {
+          // Fallback: no assigned groups or classes
+          return sendPaginatedResponse(res, 200, 'No children found - no assigned classes or groups', [], {
+            page,
+            limit,
+            totalPages: 0,
+            totalItems: 0,
+            hasNextPage: false,
+            hasPrevPage: false
+          });
+        }
+      }
+      // Manager, nurse, receptionist see all children (or filtered by other rules)
     }
 
     // Filter by status
@@ -92,7 +157,9 @@ export const getChildren = async (req, res, next) => {
     }
 
     // Get total count for pagination
+    console.log('📊 Final query before DB:', query);
     const totalItems = await Child.countDocuments(query);
+    console.log('📊 Total children found:', totalItems);
 
     // Get children with pagination
     const children = await Child.find(query)
@@ -106,6 +173,37 @@ export const getChildren = async (req, res, next) => {
     const pagination = buildPagination(page, limit, totalItems);
 
     sendPaginatedResponse(res, 200, 'Children retrieved successfully', children, pagination);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get children by parentId (explicit parameter)
+ * @route   GET /api/children/parent/:parentId
+ * @access  Private (Admin/Staff) or Parent (own children only)
+ */
+export const getChildrenByParent = async (req, res, next) => {
+  try {
+    const { page, limit, skip } = getPaginationParams(req.query);
+    const parentId = req.params.parentId;
+
+    // If requester is a parent, ensure they only access their own children
+    if (req.user.role === ROLES.PARENT && req.user.id !== parentId) {
+      return sendError(res, 403, 'Not authorized to view other parent\'s children');
+    }
+
+    const query = { 'parents.parent': parentId };
+    const totalItems = await Child.countDocuments(query);
+    const children = await Child.find(query)
+      .populate('parents.parent', 'firstName lastName email phone')
+      .populate('assignedClass', 'name ageRange color')
+      .populate('assignedGroup', 'name maxCapacity')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const pagination = buildPagination(page, limit, totalItems);
+    sendPaginatedResponse(res, 200, 'Children by parent retrieved successfully', children, pagination);
   } catch (error) {
     next(error);
   }
@@ -435,6 +533,55 @@ export const getChildrenStats = async (req, res, next) => {
     };
 
     sendSuccess(res, 200, 'Children statistics retrieved successfully', stats);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Bulk delete children
+ * @route   POST /api/children/bulk-delete
+ * @access  Private (Admin, Manager)
+ */
+export const bulkDeleteChildren = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+
+    // Validate input
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, 'No child IDs provided');
+    }
+
+    // Validate all IDs are valid ObjectIds
+    const mongoose = (await import('mongoose')).default;
+    const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    if (validIds.length === 0) {
+      return sendError(res, 400, 'No valid child IDs provided');
+    }
+
+    // Get children names for audit log before deletion
+    const childrenToDelete = await Child.find({ _id: { $in: validIds } }).select('firstName lastName');
+    const childrenNames = childrenToDelete.map(c => `${c.firstName} ${c.lastName}`).join(', ');
+
+    // Delete all children
+    const result = await Child.deleteMany({ _id: { $in: validIds } });
+
+    // Audit log
+    if (req.audit && result.deletedCount > 0) {
+      await req.audit.log({
+        action: 'BULK_DELETE',
+        resourceType: 'Child',
+        description: `Bulk deleted ${result.deletedCount} children: ${childrenNames}`,
+        metadata: { deletedCount: result.deletedCount, childrenIds: validIds }
+      });
+    }
+
+    sendSuccess(res, 200, `${result.deletedCount} children deleted successfully`, {
+      deletedCount: result.deletedCount,
+      requestedCount: ids.length,
+      validCount: validIds.length
+    });
   } catch (error) {
     next(error);
   }

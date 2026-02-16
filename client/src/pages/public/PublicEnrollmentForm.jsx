@@ -136,7 +136,7 @@ const PublicEnrollmentForm = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-blue-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 text-green-600 mb-6">
             <FiCheckCircle className="h-12 w-12" />
@@ -148,7 +148,7 @@ const PublicEnrollmentForm = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg"
+            className="bg-gradient-to-r from-blue-600 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg"
           >
             Back to Home
           </button>
@@ -158,7 +158,7 @@ const PublicEnrollmentForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <button
           onClick={() => navigate('/')}
@@ -191,7 +191,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.childFirstName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -202,7 +202,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.childLastName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -213,7 +213,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.childDOB}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -223,7 +223,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.childGender}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Gender</option>
                     <option value="male">Male</option>
@@ -246,7 +246,7 @@ const PublicEnrollmentForm = () => {
                         type="text"
                         value={allergy}
                         onChange={(e) => handleArrayChange('allergies', index, e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., Peanuts, Dairy"
                       />
                       {formData.allergies.length > 1 && (
@@ -263,7 +263,7 @@ const PublicEnrollmentForm = () => {
                   <button
                     type="button"
                     onClick={() => addArrayItem('allergies')}
-                    className="text-purple-600 text-sm hover:text-purple-700"
+                    className="text-blue-600 text-sm hover:text-blue-700"
                   >
                     + Add Allergy
                   </button>
@@ -277,7 +277,7 @@ const PublicEnrollmentForm = () => {
                         type="text"
                         value={med}
                         onChange={(e) => handleArrayChange('medications', index, e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., Inhaler"
                       />
                       {formData.medications.length > 1 && (
@@ -294,7 +294,7 @@ const PublicEnrollmentForm = () => {
                   <button
                     type="button"
                     onClick={() => addArrayItem('medications')}
-                    className="text-purple-600 text-sm hover:text-purple-700"
+                    className="text-blue-600 text-sm hover:text-blue-700"
                   >
                     + Add Medication
                   </button>
@@ -308,7 +308,7 @@ const PublicEnrollmentForm = () => {
                       name="doctorName"
                       value={formData.doctorName}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -318,7 +318,7 @@ const PublicEnrollmentForm = () => {
                       name="doctorPhone"
                       value={formData.doctorPhone}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -337,7 +337,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.parentName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -348,7 +348,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.parentEmail}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -359,7 +359,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.parentPhone}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -369,7 +369,7 @@ const PublicEnrollmentForm = () => {
                     required
                     value={formData.parentRelationship}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="mother">Mother</option>
                     <option value="father">Father</option>
@@ -384,7 +384,7 @@ const PublicEnrollmentForm = () => {
                     rows="2"
                     value={formData.parentAddress}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -415,7 +415,7 @@ const PublicEnrollmentForm = () => {
                         required
                         value={contact.name}
                         onChange={(e) => handleEmergencyContactChange(index, 'name', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
@@ -425,7 +425,7 @@ const PublicEnrollmentForm = () => {
                         required
                         value={contact.relationship}
                         onChange={(e) => handleEmergencyContactChange(index, 'relationship', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
@@ -435,7 +435,7 @@ const PublicEnrollmentForm = () => {
                         required
                         value={contact.phone}
                         onChange={(e) => handleEmergencyContactChange(index, 'phone', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
@@ -444,7 +444,7 @@ const PublicEnrollmentForm = () => {
                         type="email"
                         value={contact.email}
                         onChange={(e) => handleEmergencyContactChange(index, 'email', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -453,7 +453,7 @@ const PublicEnrollmentForm = () => {
               <button
                 type="button"
                 onClick={addEmergencyContact}
-                className="text-purple-600 hover:text-purple-700"
+                className="text-blue-600 hover:text-blue-700"
               >
                 + Add Another Emergency Contact
               </button>
@@ -467,7 +467,7 @@ const PublicEnrollmentForm = () => {
                 rows="4"
                 value={formData.additionalNotes}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Any additional information you'd like us to know..."
               />
             </div>
@@ -484,7 +484,7 @@ const PublicEnrollmentForm = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50"
               >
                 {loading ? 'Submitting...' : 'Submit Application'}
               </button>

@@ -35,7 +35,7 @@ const io = new Server(httpServer, {
 // Store online users: { userId: socketId }
 const onlineUsers = new Map();
 
-console.log('🔌 Socket.IO server initialized on port 5000');
+console.log(`🔌 Socket.IO server initialized`);
 
 // Socket.IO authentication middleware
 io.use((socket, next) => {
@@ -203,6 +203,9 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import enrollmentRequestRoutes from './routes/enrollmentRequestRoutes.js';
 import auditLogRoutes from './routes/auditLogRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import absenceExcuseRoutes from './routes/absenceExcuseRoutes.js';
+import dailyReportRoutes from './routes/dailyReportRoutes.js';
 import cron from 'node-cron';
 import Payment from './models/Payment.js';
 import { PAYMENT_STATUS } from './utils/constants.js';
@@ -221,6 +224,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/enrollment-requests', enrollmentRequestRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/absence-excuses', absenceExcuseRoutes);
+app.use('/api/daily-reports', dailyReportRoutes);
 
 // ================= Overdue Payment Reminder Cron =================
 // Runs daily at 08:00 server time
@@ -257,7 +263,7 @@ app.use(errorHandler);
 
 // ==================== SERVER ====================
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const server = httpServer.listen(PORT, () => {
   console.log(`

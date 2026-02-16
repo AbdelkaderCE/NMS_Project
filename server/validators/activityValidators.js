@@ -41,9 +41,19 @@ export const createActivityValidation = [
     .withMessage('Description must be between 10 and 1000 characters'),
   
   body('child')
-    .optional()
+    .if(body => body.child && body.child !== 'null' && body.child !== '')
     .isMongoId()
     .withMessage('Invalid child ID'),
+  
+  body('group')
+    .if(body => body.group && body.group !== 'null' && body.group !== '')
+    .isMongoId()
+    .withMessage('Invalid group ID'),
+  
+  body('class')
+    .if(body => body.class && body.class !== 'null' && body.class !== '')
+    .isMongoId()
+    .withMessage('Invalid class ID'),
   
   body('performedBy')
     .optional()

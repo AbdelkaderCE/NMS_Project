@@ -10,7 +10,7 @@ import Loading from '../../components/common/Loading';
 import Modal from '../../components/common/Modal';
 import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiDollarSign } from 'react-icons/fi';
 
-const ClassList = () => {
+const ClassList = ({ onSearchClick }) => {
   const { user } = useAuth();
   const [classes, setClasses] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -55,8 +55,8 @@ const ClassList = () => {
     try {
       setLoading(true);
       const [classesRes, groupsRes] = await Promise.all([
-        classAPI.getAll(),
-        groupAPI.getAll(),
+        classAPI.getAll({ limit: 100 }),
+        groupAPI.getAll({ limit: 100 }),
       ]);
       setClasses(classesRes.data || []);
       setGroups(groupsRes.data || []);
@@ -167,7 +167,7 @@ const ClassList = () => {
   };
 
   if (loading) return (
-    <Layout>
+    <Layout onSearchClick={onSearchClick}>
       <div className="flex justify-center items-center h-64">
         <Loading />
       </div>

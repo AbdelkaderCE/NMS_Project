@@ -111,11 +111,11 @@ const activitySchema = new mongoose.Schema(
       },
     ],
     
-    // Staff who logged the activity
+    // Staff who logged the activity (optional for admin users)
     loggedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Staff',
-      required: [true, 'Staff reference is required'],
+      default: null,
     },
     
     // Parent visibility

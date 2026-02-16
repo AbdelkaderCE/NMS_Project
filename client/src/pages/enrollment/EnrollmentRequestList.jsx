@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { enrollmentRequestAPI } from '../../api';
 import Layout from '../../components/layout/Layout';
-import { FiCheckCircle, FiClock, FiXCircle, FiEye } from 'react-icons/fi';
+import { FiCheckCircle, FiClock, FiXCircle, FiEye, FiAlertCircle } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
 
 const EnrollmentRequestList = ({ onSearchClick }) => {
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // Check if user is receptionist (read-only access)
+  const isReceptionist = user?.role === 'staff' && user?.staffInfo?.position === 'receptionist';
 
   useEffect(() => {
     fetchRequests();
@@ -18,7 +23,7 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { limit: 100 };
       if (filter !== 'all') params.status = filter;
       if (search) params.search = search;
       
@@ -50,12 +55,21 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
       const payload = classId ? { classId } : {};
       const response = await enrollmentRequestAPI.accept(selectedRequest._id, payload);
       
-      // Check if temp password exists (for public requests)
-      const tempPasswordMessage = response.tempPassword 
-        ? `\n\nTemporary password: ${response.tempPassword}\n\nPlease send this to the parent's email.`
-        : '';
+      // Response structure: { success, message, data: { request, parentEmail, tempPassword, assignedGroup } }
+      const acceptData = response.data || response;
+      let successMessage = 'Application accepted!';
       
-      alert(`Application accepted!${tempPasswordMessage}`);
+      // Add group information if available
+      if (acceptData.assignedGroup) {
+        successMessage += `\n\nGroup Assignment:\n${acceptData.assignedGroup.name} (${acceptData.assignedGroup.maxCapacity} capacity)`;
+      }
+      
+      // Add temp password if it's a public request
+      if (acceptData.tempPassword) {
+        successMessage += `\n\nTemporary password: ${acceptData.tempPassword}\n\nPlease share this with the parent's email: ${acceptData.parentEmail}`;
+      }
+      
+      alert(successMessage);
       setShowModal(false);
       fetchRequests();
     } catch (error) {
@@ -100,6 +114,20 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Enrollment Requests</h1>
         </div>
+
+        {/* Receptionist Read-Only Notice */}
+        {isReceptionist && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start">
+            <FiAlertCircle className="text-orange-600 mt-0.5 mr-3 flex-shrink-0" size={20} />
+            <div>
+              <h3 className="text-orange-900 font-semibold mb-1">View-Only Access</h3>
+              <p className="text-orange-800 text-sm">
+                You can view enrollment requests but cannot approve or reject them. 
+                Please contact a manager or administrator for approvals.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -209,6 +237,7 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
             onClose={() => setShowModal(false)}
             onAccept={handleAccept}
             onReject={handleReject}
+            isReadOnly={isReceptionist}
           />
         )}
       </div>
@@ -216,7 +245,7 @@ const EnrollmentRequestList = ({ onSearchClick }) => {
   );
 };
 
-const RequestDetailsModal = ({ request, onClose, onAccept, onReject }) => {
+const RequestDetailsModal = ({ request, onClose, onAccept, onReject, isReadOnly = false }) => {
   const [action, setAction] = useState(null);
   const [classId, setClassId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -316,7 +345,7 @@ const RequestDetailsModal = ({ request, onClose, onAccept, onReject }) => {
           )}
 
           {/* Actions */}
-          {request.status === 'pending' && (
+          {request.status === 'pending' && !isReadOnly && (
             <div className="border-t pt-6 space-y-4">
               <div className="flex gap-4">
                 <button
@@ -379,6 +408,22 @@ const RequestDetailsModal = ({ request, onClose, onAccept, onReject }) => {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Read-Only Notice for Receptionist */}
+          {request.status === 'pending' && isReadOnly && (
+            <div className="border-t pt-6">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start">
+                <FiAlertCircle className="text-orange-600 mt-0.5 mr-3 flex-shrink-0" size={20} />
+                <div>
+                  <h3 className="text-orange-900 font-semibold mb-1">Approval Required</h3>
+                  <p className="text-orange-800 text-sm">
+                    This request is pending approval. As a receptionist, you can view the details but cannot 
+                    approve or reject applications. Please contact a manager or administrator to process this request.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

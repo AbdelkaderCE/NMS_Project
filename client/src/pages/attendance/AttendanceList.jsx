@@ -1,29 +1,50 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import Modal from '../../components/common/Modal';
 import Alert from '../../components/common/Alert';
-import { attendanceAPI, childrenAPI } from '../../api';
-import { FiCalendar, FiCheck, FiX, FiClock, FiFilter } from 'react-icons/fi';
+import { attendanceAPI, childrenAPI, absenceExcuseAPI } from '../../api';
+import { FiCalendar, FiCheck, FiX, FiClock, FiFilter, FiDownload, FiFileText } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { exportAttendanceToCSV } from '../../utils/csvExport';
 
-const AttendanceList = () => {
+const AttendanceList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [filterChild, setFilterChild] = useState('');
   const [alert, setAlert] = useState(null);
+  const [showMarkAttendanceModal, setShowMarkAttendanceModal] = useState(false);
+  const [showExcuseModal, setShowExcuseModal] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
+  const [excuseForm, setExcuseForm] = useState({
+    reason: '',
+    description: '',
+    attachments: []
+  });
 
   useEffect(() => {
     fetchChildren();
     fetchAttendance();
   }, [selectedDate, filterChild]);
 
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowMarkAttendanceModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const fetchChildren = async () => {
     try {
-      const response = await childrenAPI.getAll();
+      const response = await childrenAPI.getAll({ limit: 100 });
       setChildren(response.data || []);
     } catch (error) {
       console.error('Failed to fetch children:', error);
@@ -33,13 +54,19 @@ const AttendanceList = () => {
   const fetchAttendance = async () => {
     try {
       setLoading(true);
-      const params = { date: selectedDate };
+      const params = { date: selectedDate, limit: 100 };
       if (filterChild) params.child = filterChild;
       
+      console.log('Fetching attendance with params:', params);
       const response = await attendanceAPI.getAll(params);
+      console.log('Full API response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response pagination:', response.pagination);
       setAttendanceRecords(response.data || []);
+      console.log('Set attendance records to:', response.data || []);
     } catch (error) {
       console.error('Failed to fetch attendance:', error);
+      setAttendanceRecords([]);
     } finally {
       setLoading(false);
     }
@@ -62,9 +89,15 @@ const AttendanceList = () => {
 
       console.log('Sending attendance data:', attendanceData);
       
-      await attendanceAPI.create(attendanceData);
+      const response = await attendanceAPI.create(attendanceData);
+      console.log('Create attendance response:', response);
+      
       showAlert('success', 'Check-in recorded successfully');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay to ensure DB is updated
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Attendance error:', error);
       console.error('Error response:', error.response?.data);
@@ -74,11 +107,17 @@ const AttendanceList = () => {
 
   const handleCheckOut = async (attendanceId) => {
     try {
-      await attendanceAPI.update(attendanceId, {
+      const response = await attendanceAPI.update(attendanceId, {
         checkOutTime: new Date().toISOString()
       });
+      console.log('Update attendance (checkout) response:', response);
+      
       showAlert('success', 'Check-out recorded successfully');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Checkout error:', error);
       console.error('Error response:', error.response?.data);
@@ -95,9 +134,15 @@ const AttendanceList = () => {
         recordedBy: user._id
       };
 
-      await attendanceAPI.create(attendanceData);
+      const response = await attendanceAPI.create(attendanceData);
+      console.log('Create attendance (absent) response:', response);
+      
       showAlert('success', 'Marked as absent');
-      fetchAttendance();
+      
+      // Refresh attendance list with a small delay to ensure DB is updated
+      setTimeout(() => {
+        fetchAttendance();
+      }, 300);
     } catch (error) {
       console.error('Absent error:', error);
       console.error('Error response:', error.response?.data);
@@ -119,6 +164,35 @@ const AttendanceList = () => {
     });
   };
 
+  const handleExportAttendance = () => {
+    exportAttendanceToCSV(attendanceRecords);
+    showAlert('success', `${attendanceRecords.length} attendance records exported to CSV`);
+  };
+
+  const handleOpenExcuseModal = (child) => {
+    setSelectedChild(child);
+    setShowExcuseModal(true);
+  };
+
+  const handleSubmitExcuse = async (e) => {
+    e.preventDefault();
+    try {
+      await absenceExcuseAPI.submit({
+        child: selectedChild._id,
+        absenceDate: new Date(selectedDate).toISOString(),
+        reason: excuseForm.reason,
+        description: excuseForm.description
+      });
+      
+      showAlert('success', 'Absence excuse submitted successfully');
+      setShowExcuseModal(false);
+      setExcuseForm({ reason: '', description: '', attachments: [] });
+      setSelectedChild(null);
+    } catch (error) {
+      showAlert('error', error.response?.data?.message || 'Failed to submit excuse');
+    }
+  };
+
   const canMarkAttendance = user?.role === 'admin' || user?.role === 'staff';
 
   return (
@@ -135,6 +209,16 @@ const AttendanceList = () => {
             </p>
           </div>
           <div className="flex items-center space-x-3">
+            {attendanceRecords.length > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={FiDownload}
+                onClick={handleExportAttendance}
+              >
+                Export CSV
+              </Button>
+            )}
             <FiCalendar className="text-gray-400" />
             <input
               type="date"
@@ -234,15 +318,27 @@ const AttendanceList = () => {
                                 }`}>{attendance.status}</span>
                               </p>
                             </div>
-                            {canMarkAttendance && isPresent && !attendance.checkOutTime && (
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleCheckOut(attendance._id)}
-                              >
-                                Check Out
-                              </Button>
-                            )}
+                            <div className="flex flex-col space-y-2">
+                              {canMarkAttendance && isPresent && !attendance.checkOutTime && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleCheckOut(attendance._id)}
+                                >
+                                  Check Out
+                                </Button>
+                              )}
+                              {isAbsent && (user?.role === 'parent' || canMarkAttendance) && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  icon={FiFileText}
+                                  onClick={() => handleOpenExcuseModal(child)}
+                                >
+                                  Add Excuse
+                                </Button>
+                              )}
+                            </div>
                           </>
                         ) : (
                           canMarkAttendance && (
@@ -307,6 +403,80 @@ const AttendanceList = () => {
             </div>
           </Card>
         )}
+
+        {/* Absence Excuse Modal */}
+        <Modal
+          isOpen={showExcuseModal}
+          onClose={() => {
+            setShowExcuseModal(false);
+            setSelectedChild(null);
+            setExcuseForm({ reason: '', description: '', attachments: [] });
+          }}
+          title="Submit Absence Excuse"
+        >
+          <form onSubmit={handleSubmitExcuse} className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-4">
+                Submitting excuse for <span className="font-semibold">{selectedChild?.firstName} {selectedChild?.lastName}</span> on {new Date(selectedDate).toLocaleDateString()}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reason *
+              </label>
+              <select
+                value={excuseForm.reason}
+                onChange={(e) => setExcuseForm({ ...excuseForm, reason: e.target.value })}
+                className="input-field"
+                required
+              >
+                <option value="">Select a reason</option>
+                <option value="illness">Illness</option>
+                <option value="medical_appointment">Medical Appointment</option>
+                <option value="family_emergency">Family Emergency</option>
+                <option value="travel">Travel</option>
+                <option value="religious_observance">Religious Observance</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description *
+              </label>
+              <textarea
+                value={excuseForm.description}
+                onChange={(e) => setExcuseForm({ ...excuseForm, description: e.target.value })}
+                className="input-field"
+                rows={4}
+                placeholder="Please provide details about the absence..."
+                required
+              />
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> The teacher will be notified and will review your excuse.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowExcuseModal(false);
+                  setSelectedChild(null);
+                  setExcuseForm({ reason: '', description: '', attachments: [] });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Submit Excuse</Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </Layout>
   );

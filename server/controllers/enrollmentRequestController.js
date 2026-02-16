@@ -2,10 +2,47 @@ import EnrollmentRequest from '../models/EnrollmentRequest.js';
 import Child from '../models/Child.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
+import Group from '../models/Group.js';
+import Staff from '../models/Staff.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
+import { notifyEnrollmentRequest } from '../utils/notificationHelper.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+
+/**
+ * Helper function to find best group for child assignment
+ * Considers available capacity and returns group with most capacity
+ */
+const findBestGroupForChild = async (classId) => {
+  try {
+    const groups = await Group.find({ class: classId, isActive: true });
+    
+    if (groups.length === 0) {
+      return null;
+    }
+
+    // Get children count for each group
+    let bestGroup = null;
+    let maxAvailableCapacity = -1;
+
+    for (const group of groups) {
+      const childrenCount = await Child.countDocuments({ assignedGroup: group._id });
+      const availableCapacity = group.maxCapacity - childrenCount;
+      
+      // Select group with available capacity (prefer one with more space)
+      if (availableCapacity > 0 && availableCapacity > maxAvailableCapacity) {
+        maxAvailableCapacity = availableCapacity;
+        bestGroup = group;
+      }
+    }
+
+    return bestGroup;
+  } catch (error) {
+    console.error('Error finding best group:', error);
+    return null;
+  }
+};
 
 /**
  * @desc    Submit enrollment request (public or parent)
@@ -45,6 +82,31 @@ export const submitEnrollmentRequest = async (req, res, next) => {
       { path: 'preferredClass', select: 'name ageRange' },
       { path: 'parentId', select: 'firstName lastName email phone' }
     ]);
+
+    // Send notification to admin and staff
+    try {
+      const adminAndStaff = await User.find(
+        { role: { $in: ['admin', 'staff'] } },
+        '_id'
+      );
+      
+      if (adminAndStaff.length > 0) {
+        const io = req.app.get('io');
+        const childName = `${child.firstName} ${child.lastName}`;
+        const enrollmentData = {
+          _id: enrollmentRequest._id,
+          childName: childName,
+          requestType: requestType,
+          parentInfo: requestType === 'public' ? parentInfo : null,
+          parentId: requestType === 'parent' ? req.user.id : null
+        };
+        
+        await notifyEnrollmentRequest(enrollmentData, adminAndStaff, io);
+      }
+    } catch (notificationError) {
+      console.error('Error sending enrollment notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     sendSuccess(res, 201, 'Enrollment request submitted successfully', enrollmentRequest);
   } catch (error) {
@@ -215,6 +277,31 @@ export const acceptEnrollmentRequest = async (req, res, next) => {
       return sendError(res, 400, 'No suitable class found for this child');
     }
 
+    // Auto-assign to group if not specified
+    let assignedGroup = null;
+    if (!groupId) {
+      assignedGroup = await findBestGroupForChild(assignedClass._id);
+      if (!assignedGroup) {
+        console.warn(`No available groups found for class ${assignedClass.name}, child will be assigned to class only`);
+      }
+    } else {
+      // Verify group exists and belongs to class
+      assignedGroup = await Group.findOne({
+        _id: groupId,
+        class: assignedClass._id
+      });
+      
+      if (!assignedGroup) {
+        return sendError(res, 400, 'Specified group does not belong to the assigned class');
+      }
+      
+      // Check capacity
+      const groupChildCount = await Child.countDocuments({ assignedGroup: groupId });
+      if (groupChildCount >= assignedGroup.maxCapacity) {
+        return sendError(res, 400, `Group has reached maximum capacity (${assignedGroup.maxCapacity} children)`);
+      }
+    }
+
     // Create child profile (ensure correct field names for class/group assignment)
     const child = await Child.create({
       firstName: request.child.firstName,
@@ -231,7 +318,7 @@ export const acceptEnrollmentRequest = async (req, res, next) => {
         isPrimary: true
       }],
       assignedClass: assignedClass._id,
-      assignedGroup: groupId || null,
+      assignedGroup: assignedGroup?._id || null,
       status: 'active'
     });
 
@@ -247,15 +334,21 @@ export const acceptEnrollmentRequest = async (req, res, next) => {
     await request.populate([
       { path: 'reviewedBy', select: 'firstName lastName' },
       { path: 'createdChildId', select: 'firstName lastName' },
-      { path: 'assignedClassId', select: 'name' },
-      { path: 'createdParentId', select: 'firstName lastName email' }
+      { path: 'assignedClassId', select: 'name' }
     ]);
 
-    sendSuccess(res, 200, 'Enrollment request accepted successfully', {
+    const responseData = {
       request,
       parentEmail: parentUser.email,
-      tempPassword: parentUser.tempPassword || null
-    });
+      tempPassword: parentUser.tempPassword || null,
+      assignedGroup: assignedGroup ? {
+        _id: assignedGroup._id,
+        name: assignedGroup.name,
+        maxCapacity: assignedGroup.maxCapacity
+      } : null
+    };
+
+    sendSuccess(res, 200, 'Enrollment request accepted successfully', responseData);
   } catch (error) {
     next(error);
   }

@@ -74,7 +74,7 @@ export const login = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Generate token and send response
-    sendTokenResponse(user, 200, res, 'Login successful');
+    await sendTokenResponse(user, 200, res, 'Login successful');
   } catch (error) {
     next(error);
   }
@@ -105,9 +105,15 @@ export const logout = async (req, res, next) => {
  */
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    // req.user already has staffInfo attached by protect middleware
+    const userObj = req.user.toObject ? req.user.toObject() : { ...req.user };
+    
+    // If staffInfo exists, include it in the response
+    if (req.user.staffInfo) {
+      userObj.staffInfo = req.user.staffInfo.toObject ? req.user.staffInfo.toObject() : req.user.staffInfo;
+    }
 
-    sendSuccess(res, 200, 'User retrieved successfully', user);
+    sendSuccess(res, 200, 'User retrieved successfully', userObj);
   } catch (error) {
     next(error);
   }
@@ -130,6 +136,34 @@ export const getUsers = async (req, res, next) => {
     const users = await User.find(filter).select('-password');
 
     sendSuccess(res, 200, 'Users retrieved successfully', users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get contacts list for messaging (role-aware filtering)
+ * @route   GET /api/auth/contacts
+ * @access  Private (Any authenticated user)
+ */
+export const getContacts = async (req, res, next) => {
+  try {
+    const requesterRole = req.user?.role;
+    let filter = {};
+
+    // Role-aware filtering: parents can only see staff/admin; staff/admin can see all
+    if (requesterRole === 'parent') {
+      filter = { role: { $in: ['staff', 'admin'] } };
+    } else if (requesterRole === 'staff' || requesterRole === 'admin') {
+      // Allow staff/admin to see everyone
+      filter = {};
+    } else {
+      // fallback: only return admins and staff
+      filter = { role: { $in: ['staff', 'admin'] } };
+    }
+
+    const users = await User.find(filter).select('-password');
+    sendSuccess(res, 200, 'Contacts retrieved successfully', users);
   } catch (error) {
     next(error);
   }
@@ -166,6 +200,46 @@ export const updateUser = async (req, res, next) => {
     }
 
     sendSuccess(res, 200, 'User updated successfully', user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get user by ID (admin/staff or self)
+ * @route   GET /api/auth/users/:id
+ * @access  Private (Admin/Staff) or Self
+ */
+export const getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Allow self-access regardless of role
+    const isSelf = req.user.id === id;
+
+    if (!isSelf && !(req.user.role === 'admin' || req.user.role === 'staff')) {
+      return sendError(res, 403, `User role '${req.user.role}' is not authorized to access this profile`);
+    }
+
+    const user = await User.findById(id).select('-password');
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    // If staff, include position
+    if (user.role === 'staff') {
+      try {
+        const { default: Staff } = await import('../models/Staff.js');
+        const staffRecord = await Staff.findOne({ user: user._id }).select('position employmentStatus schedule qualifications');
+        if (staffRecord) {
+          user._doc.staffInfo = staffRecord; // Attach for response
+        }
+      } catch (e) {
+        console.error('Error populating staff info:', e.message);
+      }
+    }
+
+    sendSuccess(res, 200, 'User profile retrieved successfully', user);
   } catch (error) {
     next(error);
   }
@@ -223,7 +297,36 @@ export const updatePassword = async (req, res, next) => {
     user.password = newPassword;
     await user.save();
 
-    sendTokenResponse(user, 200, res, 'Password updated successfully');
+    await sendTokenResponse(user, 200, res, 'Password updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Set another user's password (admin or staff manager)
+ * @route   PUT /api/auth/users/:id/password
+ * @access  Private (Admin, Staff Manager)
+ */
+export const setUserPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      return sendError(res, 400, 'New password must be at least 6 characters');
+    }
+
+    const user = await User.findById(id).select('+password');
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    // Do not return token; just confirmation
+    sendSuccess(res, 200, 'User password updated successfully', { userId: user._id });
   } catch (error) {
     next(error);
   }
@@ -300,7 +403,7 @@ export const resetPassword = async (req, res, next) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    sendTokenResponse(user, 200, res, 'Password reset successful');
+    await sendTokenResponse(user, 200, res, 'Password reset successful');
   } catch (error) {
     next(error);
   }
@@ -309,7 +412,7 @@ export const resetPassword = async (req, res, next) => {
 /**
  * Helper function to get token from model, create cookie and send response
  */
-const sendTokenResponse = (user, statusCode, res, message) => {
+const sendTokenResponse = async (user, statusCode, res, message) => {
   // Create token
   const token = user.getSignedJwtToken();
 
@@ -325,6 +428,20 @@ const sendTokenResponse = (user, statusCode, res, message) => {
   // Remove password from output
   user.password = undefined;
 
+  // If user is staff, fetch their position
+  let userObj = user.toObject();
+  if (user.role === 'staff') {
+    try {
+      const { default: Staff } = await import('../models/Staff.js');
+      const staffRecord = await Staff.findOne({ user: user._id }).select('position');
+      if (staffRecord) {
+        userObj.position = staffRecord.position;
+      }
+    } catch (error) {
+      console.error('Error fetching staff position:', error);
+    }
+  }
+
   res
     .status(statusCode)
     .cookie('token', token, options)
@@ -333,7 +450,7 @@ const sendTokenResponse = (user, statusCode, res, message) => {
       message,
       data: {
         token,
-        user,
+        user: userObj,
       },
     });
 };

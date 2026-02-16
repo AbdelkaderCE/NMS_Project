@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiSend, FiInbox, FiMail, FiArchive, FiSearch, FiUser, FiUsers } from 'react-icons/fi';
-import { messageAPI, userAPI } from '../../api';
+import { messageAPI, contactsAPI } from '../../api';
 import Layout from '../../components/layout/Layout';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
@@ -40,11 +40,11 @@ const MessageList = ({ onSearchClick }) => {
       let response;
       
       if (activeTab === 'inbox') {
-        response = await messageAPI.getInbox();
+        response = await messageAPI.getInbox({ limit: 100 });
       } else if (activeTab === 'sent') {
-        response = await messageAPI.getSent();
+        response = await messageAPI.getSent({ limit: 100 });
       } else if (activeTab === 'archived') {
-        response = await messageAPI.getArchived();
+        response = await messageAPI.getArchived({ limit: 100 });
       }
       
       // Extract messages from paginated response
@@ -61,7 +61,7 @@ const MessageList = ({ onSearchClick }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await userAPI.getAll();
+      const response = await contactsAPI.getAll({ limit: 100 });
       setUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -182,10 +182,10 @@ const MessageList = ({ onSearchClick }) => {
     <Layout onSearchClick={onSearchClick}>
       <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center backdrop-blur-sm bg-white/40 border border-blue-200/30 rounded-xl p-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-gray-600 mt-1">Send and receive messages</p>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">Messages</h1>
+          <p className="text-blue-600/70 mt-1">Send and receive messages</p>
         </div>
         <Button
           onClick={() => setShowComposeModal(true)}
@@ -204,22 +204,22 @@ const MessageList = ({ onSearchClick }) => {
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
+      <div className="backdrop-blur-sm bg-white/70 border border-blue-200/30 rounded-xl shadow-sm overflow-hidden">
+        <div className="border-b border-blue-200/20">
           <nav className="flex -mb-px">
             <button
               onClick={() => setActiveTab('inbox')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all ${
                 activeTab === 'inbox'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-blue-200/50'
               }`}
             >
               <div className="flex items-center">
                 <FiInbox className="mr-2" />
                 Inbox
                 {unreadCount > 0 && (
-                  <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
+                  <span className="ml-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold">
                     {unreadCount}
                   </span>
                 )}
@@ -227,10 +227,10 @@ const MessageList = ({ onSearchClick }) => {
             </button>
             <button
               onClick={() => setActiveTab('sent')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all ${
                 activeTab === 'sent'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-blue-200/50'
               }`}
             >
               <div className="flex items-center">
@@ -240,10 +240,10 @@ const MessageList = ({ onSearchClick }) => {
             </button>
             <button
               onClick={() => setActiveTab('archived')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-all ${
                 activeTab === 'archived'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-blue-200/50'
               }`}
             >
               <div className="flex items-center">
@@ -255,15 +255,15 @@ const MessageList = ({ onSearchClick }) => {
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-blue-200/20">
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
             <input
               type="text"
               placeholder="Search messages..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 backdrop-blur-sm bg-white/50 border border-blue-200/30 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-300 outline-none transition-all"
             />
           </div>
         </div>
@@ -275,17 +275,19 @@ const MessageList = ({ onSearchClick }) => {
           </div>
         ) : filteredMessages.length === 0 ? (
           <div className="text-center py-12">
-            <FiMail className="mx-auto text-gray-400 text-5xl mb-4" />
+            <FiMail className="mx-auto text-blue-300 text-5xl mb-4" />
             <p className="text-gray-600 text-lg">No messages found</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-blue-200/20">
             {filteredMessages.map((message) => (
               <div
                 key={message._id}
                 onClick={() => handleViewMessage(message)}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${
-                  !message.isRead && activeTab === 'inbox' ? 'bg-blue-50' : ''
+                className={`p-4 backdrop-blur-sm cursor-pointer transition-all border-l-4 ${
+                  !message.isRead && activeTab === 'inbox' 
+                    ? 'bg-blue-50/60 hover:bg-blue-100/60 border-blue-400' 
+                    : 'bg-white/30 hover:bg-white/50 border-transparent'
                 } ${
                   message.priority === 'urgent'
                     ? 'border-red-500'

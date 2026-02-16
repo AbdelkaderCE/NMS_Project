@@ -17,13 +17,15 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [newNotification, setNewNotification] = useState(null);
 
   useEffect(() => {
     if (user && token) {
       console.log('🔌 Attempting to connect socket...', { userId: user._id, hasToken: !!token });
       
       // Create socket connection
-      const newSocket = io('http://localhost:5000', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const newSocket = io(socketUrl, {
         path: '/socket.io',
         auth: {
           token: token,
@@ -54,6 +56,12 @@ export const SocketProvider = ({ children }) => {
       newSocket.on('online-users', (users) => {
         console.log('👥 Online users updated:', users);
         setOnlineUsers(users);
+      });
+
+      // Listen for new notifications
+      newSocket.on('new-notification', (notification) => {
+        console.log('🔔 New notification received:', notification);
+        setNewNotification(notification);
       });
 
       setSocket(newSocket);
@@ -96,6 +104,7 @@ export const SocketProvider = ({ children }) => {
     socket,
     connected,
     onlineUsers,
+    newNotification,
     sendMessage,
     emitTyping,
     emitStopTyping,

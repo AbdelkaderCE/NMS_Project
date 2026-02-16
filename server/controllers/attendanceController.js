@@ -5,6 +5,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES, ATTENDANCE_STATUS } from '../utils/constants.js';
+import { notifyAttendanceMarked } from '../utils/notificationHelper.js';
 
 /**
  * @desc    Create attendance record
@@ -46,12 +47,28 @@ export const createAttendance = async (req, res, next) => {
     }
 
     // Check if attendance already exists for this child on this date
-    const attendanceDate = new Date(date || Date.now());
-    attendanceDate.setHours(0, 0, 0, 0);
+    // Parse date string to local date (input is "YYYY-MM-DD" format from frontend)
+    let attendanceDate;
+    if (typeof date === 'string') {
+      // Parse as local date by using YYYY-MM-DD format (no timezone specifier)
+      const parts = date.split('-');
+      attendanceDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      attendanceDate.setHours(0, 0, 0, 0);
+    } else {
+      attendanceDate = new Date(date || Date.now());
+      attendanceDate.setHours(0, 0, 0, 0);
+    }
+    
+    // For querying, check for this date (next day at midnight)
+    const nextDay = new Date(attendanceDate);
+    nextDay.setDate(nextDay.getDate() + 1);
 
     const existingAttendance = await Attendance.findOne({
       child,
-      date: attendanceDate,
+      date: {
+        $gte: attendanceDate,
+        $lt: nextDay
+      }
     });
 
     if (existingAttendance) {
@@ -59,18 +76,41 @@ export const createAttendance = async (req, res, next) => {
     }
 
     // Create attendance with staff ID
-    const attendance = await Attendance.create({
-      child,
-      date: attendanceDate,
-      status: status || ATTENDANCE_STATUS.PRESENT,
-      recordedBy: staff._id, // Use staff ID
-      ...req.body,
-    });
+    let attendance;
+    try {
+      attendance = await Attendance.create({
+        child,
+        date: attendanceDate,
+        status: status || ATTENDANCE_STATUS.PRESENT,
+        recordedBy: staff._id, // Use staff ID
+        checkInTime: req.body.checkInTime,
+        checkOutTime: req.body.checkOutTime,
+        notes: req.body.notes,
+      });
+    } catch (error) {
+      // Handle unique index violation
+      if (error.code === 11000) {
+        // Extract the field that caused the duplicate
+        const duplicateKey = Object.keys(error.keyPattern)[0];
+        return sendError(res, 400, `Attendance record already exists for this ${duplicateKey === 'child' ? 'child' : duplicateKey} on this date`);
+      }
+      throw error;
+    }
 
     await attendance.populate([
-      { path: 'child', select: 'firstName lastName photo' },
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id' } },
       { path: 'recordedBy', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
+
+    // Notify all parents of the child
+    if (attendance.child?.parents) {
+      const io = req.app.get('io');
+      for (const parentInfo of attendance.child.parents) {
+        if (parentInfo.parent && parentInfo.parent._id) {
+          await notifyAttendanceMarked(attendance, parentInfo.parent, io);
+        }
+      }
+    }
 
     sendSuccess(res, 201, 'Attendance record created successfully', attendance);
   } catch (error) {
@@ -96,6 +136,18 @@ export const getAllAttendance = async (req, res, next) => {
       query.child = { $in: children.map((c) => c._id) };
     }
 
+    // If user is teacher, only show attendance for their class children (from middleware)
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      // Use the class IDs from middleware
+      if (req.teacherAssignedClassIds && req.teacherAssignedClassIds.length > 0) {
+        const classChildren = await Child.find({ assignedClass: { $in: req.teacherAssignedClassIds } }).select('_id');
+        query.child = { $in: classChildren.map((c) => c._id) };
+      } else {
+        // Teacher has no assigned classes, return empty result
+        return sendPaginatedResponse(res, 200, 'No attendance records available', [], { page, limit, total: 0 });
+      }
+    }
+
     // Filter by child
     if (child) {
       query.child = child;
@@ -103,22 +155,35 @@ export const getAllAttendance = async (req, res, next) => {
 
     // Filter by specific date
     if (date) {
-      const filterDate = new Date(date);
-      filterDate.setHours(0, 0, 0, 0);
-      query.date = filterDate;
+      // Parse as local date at start and end of day
+      let filterDate;
+      if (typeof date === 'string') {
+        const parts = date.split('-');
+        filterDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        filterDate.setHours(0, 0, 0, 0);
+      } else {
+        filterDate = new Date(date);
+        filterDate.setHours(0, 0, 0, 0);
+      }
+      const nextDay = new Date(filterDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      query.date = { $gte: filterDate, $lt: nextDay };
     }
 
     // Filter by date range
     if (startDate || endDate) {
       query.date = {};
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        const start = typeof startDate === 'string'
+          ? new Date(startDate + 'T00:00:00.000Z')
+          : new Date(startDate);
         query.date.$gte = start;
       }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        const end = typeof endDate === 'string'
+          ? new Date(endDate + 'T23:59:59.999Z')
+          : new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
         query.date.$lte = end;
       }
     }
@@ -129,6 +194,9 @@ export const getAllAttendance = async (req, res, next) => {
     }
 
     const totalItems = await Attendance.countDocuments(query);
+
+    console.log('🔍 Attendance query:', query);
+    console.log('📊 Total items found:', totalItems);
 
     const attendance = await Attendance.find(query)
       .populate('child', 'firstName lastName photo classGroup')
@@ -155,7 +223,11 @@ export const getAllAttendance = async (req, res, next) => {
 export const getAttendanceById = async (req, res, next) => {
   try {
     const attendance = await Attendance.findById(req.params.id)
-      .populate('child', 'firstName lastName photo classGroup parents')
+      .populate({
+        path: 'child',
+        select: 'firstName lastName photo classGroup parents assignedClass',
+        populate: { path: 'assignedClass', select: '_id' }
+      })
       .populate('recordedBy', 'user position')
       .populate('checkInBy', 'firstName lastName')
       .populate('checkOutBy', 'firstName lastName');
@@ -175,6 +247,24 @@ export const getAttendanceById = async (req, res, next) => {
       }
     }
 
+    // If user is teacher, verify they own the child's class
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
+      
+      if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
+        return sendError(res, 403, 'You have no assigned classes');
+      }
+
+      const assignedClassId = attendance.child.assignedClass?._id?.toString();
+      const hasAccess = staffInfo.assignedClasses.some(
+        cls => cls._id.toString() === assignedClassId
+      );
+
+      if (!hasAccess) {
+        return sendError(res, 403, 'This child is not in any of your assigned classes');
+      }
+    }
+
     sendSuccess(res, 200, 'Attendance record retrieved successfully', attendance);
   } catch (error) {
     next(error);
@@ -191,7 +281,7 @@ export const getAttendanceByChildAndDate = async (req, res, next) => {
     const { childId, date } = req.params;
 
     // Validate child exists
-    const child = await Child.findById(childId);
+    const child = await Child.findById(childId).populate('assignedClass');
     if (!child) {
       return sendError(res, 404, 'Child not found');
     }
@@ -207,12 +297,42 @@ export const getAttendanceByChildAndDate = async (req, res, next) => {
       }
     }
 
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    // If user is teacher, verify they own the child's class (middleware handles this, but adding extra validation)
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
+      
+      if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
+        return sendError(res, 403, 'You have no assigned classes');
+      }
+
+      const assignedClassId = child.assignedClass?._id?.toString();
+      const hasAccess = staffInfo.assignedClasses.some(
+        cls => cls._id.toString() === assignedClassId
+      );
+
+      if (!hasAccess) {
+        return sendError(res, 403, 'This child is not in any of your assigned classes');
+      }
+    }
+
+    // Parse date as UTC date at start of day
+    let attendanceDate;
+    if (typeof date === 'string') {
+      attendanceDate = new Date(date + 'T00:00:00.000Z');
+    } else {
+      attendanceDate = new Date(date);
+      attendanceDate.setUTCHours(0, 0, 0, 0);
+    }
+    
+    const nextDay = new Date(attendanceDate);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const attendance = await Attendance.findOne({
       child: childId,
-      date: attendanceDate,
+      date: {
+        $gte: attendanceDate,
+        $lt: nextDay
+      }
     })
       .populate('child', 'firstName lastName photo')
       .populate('recordedBy', 'user position')
@@ -240,6 +360,30 @@ export const updateAttendance = async (req, res, next) => {
 
     if (!attendance) {
       return sendError(res, 404, 'Attendance record not found');
+    }
+
+    // Get child record to verify authorization
+    const child = await Child.findById(attendance.child).populate('assignedClass');
+    if (!child) {
+      return sendError(res, 404, 'Child not found');
+    }
+
+    // If user is teacher, verify they own the child's class
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
+      
+      if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
+        return sendError(res, 403, 'You have no assigned classes');
+      }
+
+      const assignedClassId = child.assignedClass?._id?.toString();
+      const hasAccess = staffInfo.assignedClasses.some(
+        cls => cls._id.toString() === assignedClassId
+      );
+
+      if (!hasAccess) {
+        return sendError(res, 403, 'This child is not in any of your assigned classes');
+      }
     }
 
     attendance = await Attendance.findByIdAndUpdate(req.params.id, req.body, {
@@ -294,15 +438,38 @@ export const checkInChild = async (req, res, next) => {
       return sendError(res, 400, 'Child already checked in');
     }
 
-    // Check if user is authorized
+    // Get child record to verify authorization
+    const child = await Child.findById(attendance.child).populate('assignedClass');
+    if (!child) {
+      return sendError(res, 404, 'Child not found');
+    }
+
+    // If user is parent, check if they own this child
     if (req.user.role === ROLES.PARENT) {
-      const child = await Child.findById(attendance.child);
       const isParent = child.parents.some(
         (p) => p.parent.toString() === req.user.id
       );
 
       if (!isParent) {
         return sendError(res, 403, 'Not authorized to check in this child');
+      }
+    }
+
+    // If user is teacher, verify they own the child's class
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
+      
+      if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
+        return sendError(res, 403, 'You have no assigned classes');
+      }
+
+      const assignedClassId = child.assignedClass?._id?.toString();
+      const hasAccess = staffInfo.assignedClasses.some(
+        cls => cls._id.toString() === assignedClassId
+      );
+
+      if (!hasAccess) {
+        return sendError(res, 403, 'This child is not in any of your assigned classes');
       }
     }
 
@@ -353,15 +520,38 @@ export const checkOutChild = async (req, res, next) => {
       return sendError(res, 400, 'Child already checked out');
     }
 
-    // Check if user is authorized
+    // Get child record to verify authorization
+    const child = await Child.findById(attendance.child).populate('assignedClass');
+    if (!child) {
+      return sendError(res, 404, 'Child not found');
+    }
+
+    // If user is parent, check if they own this child
     if (req.user.role === ROLES.PARENT) {
-      const child = await Child.findById(attendance.child);
       const isParent = child.parents.some(
         (p) => p.parent.toString() === req.user.id
       );
 
       if (!isParent) {
         return sendError(res, 403, 'Not authorized to check out this child');
+      }
+    }
+
+    // If user is teacher, verify they own the child's class
+    if (req.user.role === ROLES.STAFF && ['teacher', 'assistant', 'special_educator'].includes(req.user.staffInfo?.position)) {
+      const staffInfo = await Staff.findOne({ user: req.user.id }).populate('assignedClasses');
+      
+      if (!staffInfo || !staffInfo.assignedClasses || staffInfo.assignedClasses.length === 0) {
+        return sendError(res, 403, 'You have no assigned classes');
+      }
+
+      const assignedClassId = child.assignedClass?._id?.toString();
+      const hasAccess = staffInfo.assignedClasses.some(
+        cls => cls._id.toString() === assignedClassId
+      );
+
+      if (!hasAccess) {
+        return sendError(res, 403, 'This child is not in any of your assigned classes');
       }
     }
 
@@ -396,20 +586,25 @@ export const getAttendanceStats = async (req, res, next) => {
     if (startDate || endDate) {
       dateQuery.date = {};
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        // Parse as UTC date at start of day
+        const start = typeof startDate === 'string' 
+          ? new Date(startDate + 'T00:00:00.000Z')
+          : new Date(startDate);
         dateQuery.date.$gte = start;
       }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        // Parse as UTC date at end of day
+        const end = typeof endDate === 'string'
+          ? new Date(endDate + 'T23:59:59.999Z')
+          : new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
         dateQuery.date.$lte = end;
       }
     } else {
-      // Default to current month
+      // Default to current month (UTC)
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+      const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
       dateQuery.date = { $gte: startOfMonth, $lte: endOfMonth };
     }
 

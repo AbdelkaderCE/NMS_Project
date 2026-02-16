@@ -49,11 +49,25 @@ export const AuthProvider = ({ children }) => {
       // Backend returns: { success, message, data: { token, user } }
       const tokenValue = response.data?.token || response.token;
       const userData = response.data?.user || response.data;
-      
+
+      // Persist token first
       localStorage.setItem('token', tokenValue);
-      localStorage.setItem('user', JSON.stringify(userData));
       setToken(tokenValue);
-      setUser(userData);
+
+      // Immediately fetch full user profile (includes staffInfo)
+      let fullUser = userData;
+      try {
+        const me = await authAPI.getMe();
+        if (me?.data) {
+          fullUser = me.data;
+        }
+      } catch (e) {
+        // Fallback to original user data if /me fails
+        fullUser = userData;
+      }
+
+      localStorage.setItem('user', JSON.stringify(fullUser));
+      setUser(fullUser);
       setIsAuthenticated(true);
       return response;
     } catch (error) {

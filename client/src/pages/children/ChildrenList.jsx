@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Alert from '../../components/common/Alert';
+import BulkActionsToolbar, { commonBulkActions } from '../../components/common/BulkActionsToolbar';
+import Pagination from '../../components/common/Pagination';
 import { childrenAPI, classAPI, groupAPI } from '../../api';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { exportChildrenToCSV } from '../../utils/csvExport';
 
 const ChildrenList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [children, setChildren] = useState([]);
   const [parents, setParents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -43,16 +48,32 @@ const ChildrenList = ({ onSearchClick }) => {
     phone: '',
   });
   const [alert, setAlert] = useState(null);
+  const [selectedChildren, setSelectedChildren] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchChildren();
-    fetchParents();
+    // Only admin/manager/receptionist need parent list for assigning during create/edit
+    if (user?.role === 'admin' || (user?.role === 'staff' && ['manager', 'receptionist'].includes(user?.staffInfo?.position))) {
+      fetchParents();
+    }
     fetchClasses();
   }, []);
 
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const fetchChildren = async () => {
     try {
-      const response = await childrenAPI.getAll();
+      // Request with higher limit to show all children (100 max per API)
+      const response = await childrenAPI.getAll({ limit: 100 });
       setChildren(response.data || []);
     } catch (error) {
       showAlert('error', 'Failed to fetch children');
@@ -294,6 +315,44 @@ const ChildrenList = ({ onSearchClick }) => {
     }
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const currentPageItems = getCurrentPageItems();
+      const currentPageIds = currentPageItems.map(c => c._id);
+      setSelectedChildren(currentPageIds);
+    } else {
+      setSelectedChildren([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedChildren.includes(id)) {
+      setSelectedChildren(selectedChildren.filter(childId => childId !== id));
+    } else {
+      setSelectedChildren([...selectedChildren, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedChildren.length} children?\\n\\nThis action cannot be undone.`)) return;
+    
+    try {
+      // Use bulk delete API endpoint
+      await childrenAPI.bulkDelete({ ids: selectedChildren });
+      showAlert('success', `${selectedChildren.length} children deleted successfully`);
+      setSelectedChildren([]);
+      fetchChildren();
+    } catch (error) {
+      showAlert('error', error.response?.data?.message || 'Failed to delete selected children');
+    }
+  };
+
+  const handleBulkExport = () => {
+    const childrenToExport = children.filter(c => selectedChildren.includes(c._id));
+    exportChildrenToCSV(childrenToExport);
+    showAlert('success', `${selectedChildren.length} children exported to CSV`);
+  };
+
   const handleCreateParent = async (e) => {
     e.preventDefault();
     try {
@@ -326,6 +385,18 @@ const ChildrenList = ({ onSearchClick }) => {
     `${child.firstName} ${child.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const getCurrentPageItems = () => filteredChildren.slice(indexOfFirstItem, indexOfLastItem);
+  const currentPageChildren = getCurrentPageItems();
+  const totalPages = Math.ceil(filteredChildren.length / itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const calculateAge = (dateOfBirth) => {
     if (!dateOfBirth) return 'N/A';
     const today = new Date();
@@ -347,7 +418,8 @@ const ChildrenList = ({ onSearchClick }) => {
             <h1 className="text-2xl font-bold text-gray-900">Children Management</h1>
             <p className="text-gray-600 mt-1">{children.length} children registered</p>
           </div>
-          {(user?.role === 'admin' || user?.role === 'staff') && (
+          {/* Only admin and manager can add children - teachers/assistants can only view */}
+          {(user?.role === 'admin' || (user?.role === 'staff' && ['manager', 'receptionist'].includes(user?.staffInfo?.position))) && (
             <Button icon={FiPlus} onClick={() => {
               resetForm();
               setShowAddModal(true);
@@ -400,47 +472,100 @@ const ChildrenList = ({ onSearchClick }) => {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredChildren.map((child) => (
-              <Card key={child._id} className="hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {child.firstName} {child.lastName}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Age: {calculateAge(child.dateOfBirth)} years • {child.gender}
-                    </p>
-                    {/* Class and Group Badges */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {child.assignedClass && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {child.assignedClass.name}
-                        </span>
-                      )}
-                      {child.assignedGroup && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {child.assignedGroup.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          <>
+            {/* Selection Controls */}
+            {(user?.role === 'admin' || user?.role === 'staff') && currentPageChildren.length > 0 && (
+              <Card className="mb-4">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedChildren.length === currentPageChildren.length && currentPageChildren.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Select all on this page ({currentPageChildren.length} items)
+                    </span>
+                  </label>
+                  {selectedChildren.length > 0 && (
+                    <span className="text-sm text-gray-600">
+                      {selectedChildren.length} selected
+                    </span>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {currentPageChildren.map((child) => (
+                <Card 
+                  key={child._id} 
+                  className={`
+                    relative hover:shadow-lg transition-all
+                    ${selectedChildren.includes(child._id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                  `}
+                >
+                  {/* Selection Checkbox */}
                   {(user?.role === 'admin' || user?.role === 'staff') && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(child)}
-                        className="text-primary-600 hover:text-primary-700"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(child._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
+                    <div className="absolute top-4 left-4 z-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedChildren.includes(child._id)}
+                        onChange={() => handleSelectOne(child._id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                      />
                     </div>
                   )}
+
+                  <div className={`flex items-start justify-between mb-4 ${(user?.role === 'admin' || user?.role === 'staff') ? 'ml-8' : ''}`}>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {child.firstName} {child.lastName}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Age: {calculateAge(child.dateOfBirth)} years • {child.gender}
+                      </p>
+                      {/* Class and Group Badges */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {child.assignedClass && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {child.assignedClass.name}
+                          </span>
+                        )}
+                        {child.assignedGroup && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {child.assignedGroup.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                    <Link
+                      to={`/children/${child._id}`}
+                      className="text-blue-600 hover:text-blue-700"
+                      title="View Profile"
+                    >
+                      <FiUser className="h-4 w-4" />
+                    </Link>
+                    {(user?.role === 'admin' || user?.role === 'staff') && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(child)}
+                          className="text-primary-600 hover:text-primary-700"
+                        >
+                          <FiEdit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(child._id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -466,6 +591,32 @@ const ChildrenList = ({ onSearchClick }) => {
               </Card>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredChildren.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
+        )}
+
+        {/* Bulk Actions Toolbar */}
+        {(user?.role === 'admin' || user?.role === 'staff') && (
+          <BulkActionsToolbar
+            selectedCount={selectedChildren.length}
+            onClearSelection={() => setSelectedChildren([])}
+            actions={[
+              commonBulkActions.delete(handleBulkDelete),
+              commonBulkActions.export(handleBulkExport),
+            ]}
+          />
         )}
 
         {/* Add/Edit Modal */}

@@ -9,6 +9,7 @@ import {
   deleteEnrollmentRequest
 } from '../controllers/enrollmentRequestController.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { isAdminOrManager, canModifyEnrollment } from '../middleware/managerAuth.js';
 
 const router = express.Router();
 
@@ -18,11 +19,13 @@ router.post('/', submitEnrollmentRequest);
 // Parent routes
 router.get('/my-requests', protect, authorize('parent'), getMyEnrollmentRequests);
 
-// Admin/Staff routes
-router.get('/', protect, authorize('admin', 'staff'), getAllEnrollmentRequests);
-router.get('/:id', protect, getEnrollmentRequest);
-router.post('/:id/accept', protect, authorize('admin', 'staff'), acceptEnrollmentRequest);
-router.post('/:id/reject', protect, authorize('admin', 'staff'), rejectEnrollmentRequest);
+// Admin/Manager/Receptionist routes (view access)
+router.get('/', protect, authorize('admin', 'staff'), isAdminOrManager, getAllEnrollmentRequests);
+router.get('/:id', protect, isAdminOrManager, getEnrollmentRequest);
+
+// Admin/Manager only routes (modify access)
+router.post('/:id/accept', protect, authorize('admin', 'staff'), canModifyEnrollment, acceptEnrollmentRequest);
+router.post('/:id/reject', protect, authorize('admin', 'staff'), canModifyEnrollment, rejectEnrollmentRequest);
 router.delete('/:id', protect, authorize('admin'), deleteEnrollmentRequest);
 
 export default router;

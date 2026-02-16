@@ -7,6 +7,7 @@ import ErrorResponse from '../utils/errorResponse.js';
 import { sendSuccess, sendError, sendPaginatedResponse } from '../utils/responseHandler.js';
 import { getPaginationParams, buildPagination } from '../utils/helpers.js';
 import { ROLES } from '../utils/constants.js';
+import { notifyActivityScheduled } from '../utils/notificationHelper.js';
 
 /**
  * Helper function to extract parent ID from parent reference
@@ -56,27 +57,61 @@ export const createActivity = async (req, res, next) => {
     }
 
     // Find staff profile for the authenticated user
-    const staffProfile = await Staff.findOne({ user: req.user.id });
-    if (!staffProfile) {
-      return sendError(res, 400, 'Staff profile is required. Only staff members can log activities.');
-    }
-    if (staffProfile.position !== 'teacher') {
-      return sendError(res, 403, 'Only staff with position "teacher" can log activities');
+    // Admins can create activities without a staff profile
+    let staffProfile = null;
+    if (req.user.role === 'staff') {
+      staffProfile = await Staff.findOne({ user: req.user.id });
+      if (!staffProfile) {
+        return sendError(res, 400, 'Staff profile is required. Only staff members can log activities.');
+      }
+      if (staffProfile.position !== 'teacher') {
+        return sendError(res, 403, 'Only staff with position "teacher" can log activities');
+      }
     }
 
     // Create activity
-    const activity = await Activity.create({
-      ...req.body,
-      loggedBy: staffProfile._id,
-    });
+    const activityData = { ...req.body };
+    if (staffProfile) {
+      activityData.loggedBy = staffProfile._id;
+    }
+    const activity = await Activity.create(activityData);
 
     await activity.populate([
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id' } },
       { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id firstName lastName' } },
       { path: 'group', select: 'name maxCapacity', populate: { path: 'class', select: 'name' } },
       { path: 'class', select: 'name ageRange' },
       { path: 'loggedBy', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
 
+    // Notify relevant parents
+    const io = req.app.get('io');
+    const parentIds = new Set();
+    
+    // If activity is for specific child, notify their parents
+    if (activity.child?.parents) {
+      activity.child.parents.forEach(p => {
+        if (p.parent?._id) parentIds.add(p.parent._id.toString());
+      });
+    }
+    
+    // If activity is for group or class, get all children's parents
+    if (activity.group || activity.class) {
+      const query = {};
+      if (activity.group) query.assignedGroup = activity.group._id;
+      if (activity.class) query.assignedClass = activity.class._id;
+      
+      const children = await Child.find(query).populate('parents.parent', '_id');
+      children.forEach(child => {
+        child.parents?.forEach(p => {
+          if (p.parent?._id) parentIds.add(p.parent._id.toString());
+        });
+      });
+    }
+    
+    if (parentIds.size > 0) {
+      await notifyActivityScheduled(activity, Array.from(parentIds), io);
+    }
     // Send real-time notification to parents via Socket.IO
     const io = req.app.get('io');
     if (io) {
@@ -160,7 +195,8 @@ export const getAllActivities = async (req, res, next) => {
 
     // If user is parent, only show their children's activities
     if (req.user.role === ROLES.PARENT) {
-      const children = await Child.find({ 'parents.parent': req.user.id }).select('_id');
+      const children = await Child.find({ 'parents.parent': req.user.id })
+        .select('_id assignedClass assignedGroup');
       if (children.length === 0) {
         return sendPaginatedResponse(res, 200, 'No activities found', [], {
           currentPage: page,
@@ -168,7 +204,17 @@ export const getAllActivities = async (req, res, next) => {
           totalItems: 0,
         });
       }
-      query.child = { $in: children.map((c) => c._id) };
+      
+      const childIds = children.map((c) => c._id);
+      const classIds = [...new Set(children.map(c => c.assignedClass).filter(Boolean))];
+      const groupIds = [...new Set(children.map(c => c.assignedGroup).filter(Boolean))];
+      
+      // Activities for their specific children OR for their groups OR for their classes
+      query.$or = [
+        { child: { $in: childIds } },
+        { group: { $in: groupIds } },
+        { class: { $in: classIds } }
+      ];
     }
 
     // Filter by child
@@ -343,7 +389,14 @@ export const getActivitiesByChild = async (req, res, next) => {
       }
     }
 
-    let query = { child: childId };
+    // Activities can be for the specific child OR for the child's group/class
+    let query = {
+      $or: [
+        { child: childId },
+        { group: child.assignedGroup },
+        { class: child.assignedClass }
+      ]
+    };
 
     // Filter by type
     if (type) {

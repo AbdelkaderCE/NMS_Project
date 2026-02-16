@@ -30,7 +30,11 @@ export const sendMessageValidation = [
 export const messageQueryValidation = [
   query('status')
     .optional()
-    .isIn(Object.values(MESSAGE_STATUS))
+    .custom((value) => {
+      // Skip validation for empty strings (from axios empty arrays)
+      if (value === '' || value === null || value === undefined) return true;
+      return Object.values(MESSAGE_STATUS).includes(value);
+    })
     .withMessage(`Status must be one of: ${Object.values(MESSAGE_STATUS).join(', ')}`),
 ];
 

@@ -1,42 +1,174 @@
+/* Glass morphism utilities */
+.glass {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(200, 210, 255, 0.3);
+}
+
+.glass-dark {
+  backdrop-filter: blur(10px);
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(100, 150, 255, 0.2);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Override any conflicting styles */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  height: 100vh;
+}
+
+/* React Big Calendar Styling */
+.rbc-calendar {
+  font-family: inherit;
+  color: #1f2937;
+}
+
+.rbc-header {
+  background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), rgba(255, 255, 255, 0.5));
+  border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+  padding: 12px 4px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.rbc-today {
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.5), rgba(240, 249, 255, 0.5)) !important;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.rbc-date-cell {
+  padding: 8px 4px;
   text-align: center;
+  border: 1px solid rgba(229, 231, 235, 0.5);
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.rbc-date-cell.rbc-off-range-bg {
+  background: rgba(243, 244, 246, 0.3);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.rbc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0;
+  gap: 10px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.rbc-toolbar button {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
 }
 
-.card {
-  padding: 2em;
+.rbc-toolbar button:hover {
+  background: rgba(219, 234, 254, 0.8);
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #1e40af;
 }
 
-.read-the-docs {
-  color: #888;
+.rbc-toolbar button.rbc-active {
+  background: linear-gradient(to right, rgb(37, 99, 235), rgb(59, 130, 246));
+  color: white;
+  border: none;
 }
+
+.rbc-toolbar-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a8a;
+  flex-grow: 0;
+  margin: 0 20px;
+}
+
+.rbc-event {
+  background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)) !important;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
+
+.rbc-event:hover {
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.35);
+}
+
+.rbc-event-content {
+  padding: 2px 0;
+  white-space: normal;
+}
+
+.rbc-slot-selecting {
+  background: linear-gradient(90deg, rgba(219, 234, 254, 0.4), rgba(191, 219, 254, 0.4));
+}
+
+.rbc-time-slot {
+  border-top: 1px solid rgba(229, 231, 235, 0.3);
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid rgba(229, 231, 235, 0.3);
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid rgba(229, 231, 235, 0.3);
+  min-height: 80px;
+}
+
+.rbc-current-time-indicator {
+  background: linear-gradient(to right, rgb(59, 130, 246), rgba(59, 130, 246, 0));
+  height: 2px;
+}
+
+.rbc-month-view,
+.rbc-time-view {
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.rbc-show-more {
+  background: rgba(219, 234, 254, 0.6);
+  color: #1e40af;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.rbc-show-more:hover {
+  background: rgba(191, 219, 254, 0.8);
+}
+
+.rbc-overlay {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(96, 165, 250, 0.2);
+}
+
+.rbc-overlay-header {
+  background: linear-gradient(to right, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.1));
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  padding: 10px 15px;
+  font-weight: 600;
+  color: #1e40af;
+  border-radius: 8px 8px 0 0;
+}
+

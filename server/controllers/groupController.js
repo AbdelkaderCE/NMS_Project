@@ -16,11 +16,15 @@ export const createGroup = async (req, res, next) => {
       return sendError(res, 404, 'Class not found');
     }
 
-    // Validate instructors exist and are teachers
+    // Validate instructors exist and are teachers/assistants
     if (instructors && instructors.length > 0) {
-      const teachers = await Staff.find({ _id: { $in: instructors }, position: 'teacher' }).select('_id');
-      if (teachers.length !== instructors.length) {
-        return sendError(res, 400, 'All instructors must be staff with position "teacher"');
+      const validStaff = await Staff.find({ 
+        _id: { $in: instructors }, 
+        position: { $in: ['teacher', 'assistant'] }
+      }).select('_id');
+      
+      if (validStaff.length !== instructors.length) {
+        return sendError(res, 400, 'All instructors must be staff with position "teacher" or "assistant"');
       }
     }
 
@@ -29,6 +33,14 @@ export const createGroup = async (req, res, next) => {
       { path: 'class', select: 'name ageRange' },
       { path: 'instructors', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
+
+    // Add this group to instructors' assignedClasses
+    if (instructors && instructors.length > 0) {
+      await Staff.updateMany(
+        { _id: { $in: instructors } },
+        { $addToSet: { assignedClasses: group._id } }
+      );
+    }
 
     sendSuccess(res, 201, 'Group created successfully', group);
   } catch (error) {
@@ -115,16 +127,28 @@ export const getGroup = async (req, res, next) => {
 export const updateGroup = async (req, res, next) => {
   try {
     const { instructors } = req.body;
+    const groupId = req.params.id;
 
-    // Validate instructors if provided and ensure they are teachers
+    // Get the old group to see previous instructors
+    const oldGroup = await Group.findById(groupId);
+    if (!oldGroup) {
+      return sendError(res, 404, 'Group not found');
+    }
+
+    // Validate instructors if provided and ensure they are teachers/assistants
     if (instructors && instructors.length > 0) {
-      const teachers = await Staff.find({ _id: { $in: instructors }, position: 'teacher' }).select('_id');
-      if (teachers.length !== instructors.length) {
-        return sendError(res, 400, 'All instructors must be staff with position "teacher"');
+      const validStaff = await Staff.find({ 
+        _id: { $in: instructors }, 
+        position: { $in: ['teacher', 'assistant'] }
+      }).select('_id');
+      
+      if (validStaff.length !== instructors.length) {
+        return sendError(res, 400, 'All instructors must be staff with position "teacher" or "assistant"');
       }
     }
 
-    const group = await Group.findByIdAndUpdate(req.params.id, req.body, {
+    // Update the group
+    const group = await Group.findByIdAndUpdate(groupId, req.body, {
       new: true,
       runValidators: true,
     }).populate([
@@ -132,8 +156,29 @@ export const updateGroup = async (req, res, next) => {
       { path: 'instructors', populate: { path: 'user', select: 'firstName lastName' } },
     ]);
 
-    if (!group) {
-      return sendError(res, 404, 'Group not found');
+    // Sync assignedClasses in Staff model
+    if (instructors !== undefined) {
+      // Remove this group from old instructors who are no longer assigned
+      const oldInstructorIds = oldGroup.instructors.map(id => id.toString());
+      const newInstructorIds = instructors.map(id => id.toString());
+      const removedInstructors = oldInstructorIds.filter(id => !newInstructorIds.includes(id));
+      const addedInstructors = newInstructorIds.filter(id => !oldInstructorIds.includes(id));
+
+      // Remove group from staff who are no longer instructors
+      if (removedInstructors.length > 0) {
+        await Staff.updateMany(
+          { _id: { $in: removedInstructors } },
+          { $pull: { assignedClasses: groupId } }
+        );
+      }
+
+      // Add group to new instructors
+      if (addedInstructors.length > 0) {
+        await Staff.updateMany(
+          { _id: { $in: addedInstructors } },
+          { $addToSet: { assignedClasses: groupId } }
+        );
+      }
     }
 
     sendSuccess(res, 200, 'Group updated successfully', group);
@@ -149,17 +194,25 @@ export const updateGroup = async (req, res, next) => {
  */
 export const deleteGroup = async (req, res, next) => {
   try {
+    const groupId = req.params.id;
+    
     // Check if group has children
-    const childrenCount = await Child.countDocuments({ assignedGroup: req.params.id });
+    const childrenCount = await Child.countDocuments({ assignedGroup: groupId });
     if (childrenCount > 0) {
       return sendError(res, 400, 'Cannot delete group with assigned children. Please reassign children first.');
     }
 
-    const group = await Group.findByIdAndDelete(req.params.id);
+    const group = await Group.findByIdAndDelete(groupId);
 
     if (!group) {
       return sendError(res, 404, 'Group not found');
     }
+
+    // Remove this group from all staff assignedClasses
+    await Staff.updateMany(
+      { assignedClasses: groupId },
+      { $pull: { assignedClasses: groupId } }
+    );
 
     sendSuccess(res, 200, 'Group deleted successfully', null);
   } catch (error) {

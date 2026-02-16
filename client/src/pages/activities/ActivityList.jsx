@@ -38,6 +38,7 @@ const ActivityList = ({ onSearchClick }) => {
   });
 
   const user = JSON.parse(localStorage.getItem('user'));
+  const isParent = user?.role === 'parent';
 
   useEffect(() => {
     fetchData();
@@ -46,18 +47,43 @@ const ActivityList = ({ onSearchClick }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [activitiesRes, childrenRes, staffRes, classesRes, groupsRes] = await Promise.all([
-        activityAPI.getAll(),
-        childrenAPI.getAll(),
-        staffAPI.getAll(),
-        classAPI.getAll(),
-        groupAPI.getAll(),
-      ]);
-      setActivities(activitiesRes.data);
-      setChildren(childrenRes.data);
-      setStaff(staffRes.data);
-      setClasses(classesRes.data);
-      setGroups(groupsRes.data);
+      
+      if (isParent) {
+        // For parents, only fetch their children's activities
+        const [childrenRes] = await Promise.all([
+          childrenAPI.getByParent(user._id)
+        ]);
+        
+        const myChildren = childrenRes.data || [];
+        setChildren(myChildren);
+        
+        // Fetch activities for all parent's children
+        const allActivities = [];
+        for (const child of myChildren) {
+          try {
+            const activitiesRes = await activityAPI.getByChild(child._id);
+            allActivities.push(...(activitiesRes.data || []));
+          } catch (err) {
+            console.error(`Failed to fetch activities for child ${child._id}:`, err);
+          }
+        }
+        setActivities(allActivities);
+      } else {
+        // For admin/staff, fetch all data
+        const [activitiesRes, childrenRes, staffRes, classesRes, groupsRes] = await Promise.all([
+          activityAPI.getAll({ limit: 100 }),
+          childrenAPI.getAll({ limit: 100 }),
+          staffAPI.getAll({ limit: 100 }),
+          classAPI.getAll({ limit: 100 }),
+          groupAPI.getAll({ limit: 100 }),
+        ]);
+        setActivities(activitiesRes.data);
+        setChildren(childrenRes.data);
+        setStaff(staffRes.data);
+        setClasses(classesRes.data);
+        setGroups(groupsRes.data);
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);

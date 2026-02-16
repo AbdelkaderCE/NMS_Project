@@ -11,6 +11,8 @@ import {
   addEmergencyContact,
   removeEmergencyContact,
   getChildrenStats,
+  getChildrenByParent,
+  bulkDeleteChildren,
 } from '../controllers/childrenController.js';
 import {
   createChildValidation,
@@ -21,9 +23,12 @@ import {
   childIdValidation,
   parentIdValidation,
   contactIdValidation,
+  parentParamValidation,
 } from '../validators/childrenValidators.js';
 import { validate } from '../middleware/validate.js';
+import { allowAdminOrStaffPositions } from '../middleware/staffPosition.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { teacherClassFilter, classTeacherAuth } from '../middleware/classTeacherAuth.js';
 import { ROLES } from '../utils/constants.js';
 
 const router = express.Router();
@@ -38,20 +43,30 @@ router.get(
   getChildrenStats
 );
 
+// Bulk operations (Admin, Manager only)
+router.post(
+  '/bulk-delete',
+  authorize(ROLES.ADMIN, ROLES.STAFF),
+  allowAdminOrStaffPositions('manager'),
+  bulkDeleteChildren
+);
+
 // Get children by parent
 router.get(
   '/parent/:parentId',
-  childIdValidation,
+  parentParamValidation,
   validate,
-  getChildren
+  getChildrenByParent
 );
 
 // CRUD operations
 router
   .route('/')
-  .get(getChildren) // Parents see only their children
+  .get(teacherClassFilter, getChildren) // Parents see only their children, teachers see only their classes
   .post(
     authorize(ROLES.ADMIN, ROLES.STAFF),
+    // For staff, restrict to manager or receptionist positions only
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     createChildValidation,
     validate,
     createChild
@@ -59,15 +74,17 @@ router
 
 router
   .route('/:id')
-  .get(childIdValidation, validate, getChildById) // Parents can view their own children
+  .get(classTeacherAuth, childIdValidation, validate, getChildById) // Teachers can only view children in their classes
   .put(
     authorize(ROLES.ADMIN, ROLES.STAFF),
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     updateChildValidation,
     validate,
     updateChild
   )
   .delete(
-    authorize(ROLES.ADMIN),
+    authorize(ROLES.ADMIN, ROLES.STAFF),
+    allowAdminOrStaffPositions('manager', 'receptionist'),
     childIdValidation,
     validate,
     deleteChild

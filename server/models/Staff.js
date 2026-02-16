@@ -89,8 +89,8 @@ const staffSchema = new mongoose.Schema(
     // Assigned Classes/Groups
     assignedClasses: [
       {
-        type: String,
-        trim: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class',
       },
     ],
     

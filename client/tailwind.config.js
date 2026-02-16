@@ -19,6 +19,17 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
+        'blue-25': '#f8fafc',
+      },
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
+      },
+      boxShadow: {
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
       },
     },
   },

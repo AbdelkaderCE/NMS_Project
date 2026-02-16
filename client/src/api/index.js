@@ -17,9 +17,16 @@ export const authAPI = {
 export const userAPI = {
   getAll: (params) => api.get('/auth/users', { params }),
   getByRole: (role) => api.get('/auth/users', { params: { role } }),
+  getById: (id) => api.get(`/auth/users/${id}`),
   update: (id, data) => api.put(`/auth/users/${id}`, data),
   deactivate: (id) => api.delete(`/auth/users/${id}`),
   activate: (id) => api.put(`/auth/users/${id}/activate`),
+  setPassword: (id, newPassword) => api.put(`/auth/users/${id}/password`, { newPassword }),
+};
+
+// Role-aware Contacts API for messaging/chat
+export const contactsAPI = {
+  getAll: () => api.get('/auth/contacts'),
 };
 
 // Children APIs
@@ -29,6 +36,7 @@ export const childrenAPI = {
   create: (data) => api.post('/children', data),
   update: (id, data) => api.put(`/children/${id}`, data),
   delete: (id) => api.delete(`/children/${id}`),
+  bulkDelete: (data) => api.post('/children/bulk-delete', data),
   addParent: (id, data) => api.post(`/children/${id}/parents`, data),
   removeParent: (id, parentId) => api.delete(`/children/${id}/parents/${parentId}`),
   updateMedical: (id, data) => api.put(`/children/${id}/medical`, data),
@@ -172,6 +180,26 @@ export const auditLogAPI = {
   getStats: () => api.get('/audit-logs/stats'),
   getByResource: (resourceType, resourceId, params) => api.get(`/audit-logs/resource/${resourceType}/${resourceId}`, { params }),
   getByUser: (userId, params) => api.get(`/audit-logs/user/${userId}`, { params }),
+};
+
+// Absence Excuse APIs
+export const absenceExcuseAPI = {
+  getAll: (params) => api.get('/absence-excuses', { params }),
+  getById: (id) => api.get(`/absence-excuses/${id}`),
+  submit: (data) => api.post('/absence-excuses', data),
+  review: (id, data) => api.put(`/absence-excuses/${id}/review`, data),
+  delete: (id) => api.delete(`/absence-excuses/${id}`),
+};
+
+// Daily Report APIs
+export const dailyReportAPI = {
+  getAll: (params) => api.get('/daily-reports', { params }),
+  getById: (id) => api.get(`/daily-reports/${id}`),
+  getTodayReport: (childId) => api.get(`/daily-reports/child/${childId}/today`),
+  createOrUpdate: (data) => api.post('/daily-reports', data),
+  complete: (id) => api.put(`/daily-reports/${id}/complete`),
+  send: (id) => api.post(`/daily-reports/${id}/send`),
+  delete: (id) => api.delete(`/daily-reports/${id}`),
 };
 
 // Search API

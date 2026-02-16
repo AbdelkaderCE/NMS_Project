@@ -32,7 +32,7 @@ const ParentList = ({ onSearchClick }) => {
   const fetchParents = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getByRole('parent');
+      const response = await userAPI.getByRole('parent', { limit: 100 });
       setParents(response.data || []);
       setLoading(false);
     } catch (error) {
@@ -221,7 +221,9 @@ const ParentList = ({ onSearchClick }) => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">
-                        {parent.firstName} {parent.lastName}
+                        <a href={`/profile/${parent._id}`} className="hover:text-primary-700">
+                          {parent.firstName} {parent.lastName}
+                        </a>
                       </h3>
                       <div className="flex gap-2 mt-1">
                         <span className="text-xs text-gray-500">Parent</span>

@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Alert from '../../components/common/Alert';
+import BulkActionsToolbar, { commonBulkActions } from '../../components/common/BulkActionsToolbar';
+import Pagination from '../../components/common/Pagination';
 import { staffAPI, userAPI } from '../../api';
 import api from '../../api/axios';
 import { FiPlus, FiEdit2, FiUserMinus, FiUserCheck, FiSearch, FiUser, FiPhone, FiMail } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
+import { exportStaffToCSV } from '../../utils/csvExport';
 
 const StaffList = ({ onSearchClick }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,14 +44,26 @@ const StaffList = ({ onSearchClick }) => {
     },
   });
   const [alert, setAlert] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchStaff();
   }, []);
 
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const fetchStaff = async () => {
     try {
-      const response = await staffAPI.getAll();
+      const response = await staffAPI.getAll({ limit: 100 });
       setStaff(response.data || []);
     } catch (error) {
       showAlert('error', 'Failed to fetch staff members');
@@ -238,6 +256,44 @@ const StaffList = ({ onSearchClick }) => {
     }
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const currentPageItems = getCurrentPageItems();
+      const currentPageIds = currentPageItems.map(s => s._id);
+      setSelectedStaff(currentPageIds);
+    } else {
+      setSelectedStaff([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedStaff.includes(id)) {
+      setSelectedStaff(selectedStaff.filter(staffId => staffId !== id));
+    } else {
+      setSelectedStaff([...selectedStaff, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to deactivate ${selectedStaff.length} staff members?\\n\\nThey will not be able to log in.`)) return;
+    
+    try {
+      const staffToDeactivate = staff.filter(s => selectedStaff.includes(s._id));
+      await Promise.all(staffToDeactivate.map(s => userAPI.deactivate(s.user._id)));
+      showAlert('success', `${selectedStaff.length} staff members deactivated successfully`);
+      setSelectedStaff([]);
+      fetchStaff();
+    } catch (error) {
+      showAlert('error', 'Failed to deactivate selected staff members');
+    }
+  };
+
+  const handleBulkExport = () => {
+    const staffToExport = staff.filter(s => selectedStaff.includes(s._id));
+    exportStaffToCSV(staffToExport);
+    showAlert('success', `${selectedStaff.length} staff members exported to CSV`);
+  };
+
   const filteredStaff = staff.filter(s => {
     const fullName = `${s.user?.firstName} ${s.user?.lastName}`.toLowerCase();
     const position = s.position?.toLowerCase() || '';
@@ -245,14 +301,25 @@ const StaffList = ({ onSearchClick }) => {
     return fullName.includes(search) || position.includes(search);
   });
 
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const getCurrentPageItems = () => filteredStaff.slice(indexOfFirstItem, indexOfLastItem);
+  const currentPageStaff = getCurrentPageItems();
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const positionBadgeColor = (position) => {
     const colors = {
       'teacher': 'bg-blue-100 text-blue-800',
       'assistant': 'bg-green-100 text-green-800',
       'manager': 'bg-purple-100 text-purple-800',
-      'cook': 'bg-orange-100 text-orange-800',
       'nurse': 'bg-pink-100 text-pink-800',
-      'janitor': 'bg-gray-100 text-gray-800',
+      'receptionist': 'bg-orange-100 text-orange-800',
     };
     return colors[position] || 'bg-gray-100 text-gray-800';
   };
@@ -275,7 +342,7 @@ const StaffList = ({ onSearchClick }) => {
             <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
             <p className="text-gray-600 mt-1">{staff.length} staff members registered</p>
           </div>
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
             <Button icon={FiPlus} onClick={() => {
               resetForm();
               setShowAddModal(true);
@@ -315,7 +382,7 @@ const StaffList = ({ onSearchClick }) => {
               <FiUser className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No staff found</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by adding a new staff member.</p>
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
                 <div className="mt-6">
                   <Button icon={FiPlus} onClick={() => {
                     resetForm();
@@ -328,10 +395,52 @@ const StaffList = ({ onSearchClick }) => {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredStaff.map((staffMember) => (
-              <Card key={staffMember._id} className="hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
+          <>
+            {/* Selection Controls */}
+            {currentPageStaff.length > 0 && (
+              <Card className="mb-4">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaff.length === currentPageStaff.length && currentPageStaff.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Select all on this page ({currentPageStaff.length} items)
+                    </span>
+                  </label>
+                  {selectedStaff.length > 0 && (
+                    <span className="text-sm text-gray-600">
+                      {selectedStaff.length} selected
+                    </span>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {currentPageStaff.map((staffMember) => (
+                <Card 
+                  key={staffMember._id} 
+                  className={`
+                    relative hover:shadow-lg transition-all
+                    ${selectedStaff.includes(staffMember._id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                  `}
+                >
+                  {/* Selection Checkbox */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaff.includes(staffMember._id)}
+                      onChange={() => handleSelectOne(staffMember._id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between mb-4 ml-8">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
                       {staffMember.user?.firstName} {staffMember.user?.lastName}
@@ -345,8 +454,15 @@ const StaffList = ({ onSearchClick }) => {
                       </span>
                     </div>
                   </div>
-                  {user?.role === 'admin' && (
+                  {(user?.role === 'admin' || (user?.role === 'staff' && user?.staffInfo?.position === 'manager')) && (
                     <div className="flex space-x-2">
+                      <Link
+                        to={`/staff/${staffMember._id}`}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="View Profile"
+                      >
+                        <FiUser className="h-4 w-4" />
+                      </Link>
                       <button
                         onClick={() => handleEdit(staffMember)}
                         className="text-primary-600 hover:text-primary-700"
@@ -394,14 +510,38 @@ const StaffList = ({ onSearchClick }) => {
                   )}
                   {staffMember.salary?.amount && (
                     <div className="text-gray-500">
-                      <span className="font-medium">Salary:</span> {staffMember.salary.currency} {staffMember.salary.amount}/{staffMember.salary.paymentFrequency}
+                      <span className="font-medium">Salary:</span> {formatCurrency(staffMember.salary.amount)} / {staffMember.salary.paymentFrequency}
                     </div>
                   )}
                 </div>
               </Card>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredStaff.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
         )}
+
+        {/* Bulk Actions Toolbar */}
+        <BulkActionsToolbar
+          selectedCount={selectedStaff.length}
+          onClearSelection={() => setSelectedStaff([])}
+          actions={[
+            commonBulkActions.delete(handleBulkDelete),
+            commonBulkActions.export(handleBulkExport),
+          ]}
+        />
 
         {/* Add/Edit Modal */}
         <Modal
@@ -500,12 +640,12 @@ const StaffList = ({ onSearchClick }) => {
                   required
                   className="input-field"
                 >
+                  <option value="">Select Position</option>
                   <option value="teacher">Teacher</option>
-                  <option value="assistant">Assistant</option>
+                  <option value="assistant">Assistant Teacher</option>
                   <option value="manager">Manager</option>
-                  <option value="cook">Cook</option>
                   <option value="nurse">Nurse</option>
-                  <option value="janitor">Janitor</option>
+                  <option value="receptionist">Receptionist</option>
                 </select>
               </div>
 

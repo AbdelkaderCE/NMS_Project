@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FiPlus, FiSearch, FiDollarSign, FiCreditCard, FiDownload, FiTrash2, FiCheck, FiAlertCircle, FiClock } from 'react-icons/fi';
 import { paymentAPI, userAPI } from '../../api';
 import { childrenAPI } from '../../api';
@@ -8,9 +9,14 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loading from '../../components/common/Loading';
 import Alert from '../../components/common/Alert';
+import BulkActionsToolbar, { commonBulkActions } from '../../components/common/BulkActionsToolbar';
+import Pagination from '../../components/common/Pagination';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currency';
+import { exportPaymentsToCSV } from '../../utils/csvExport';
 
-const PaymentList = () => {
+const PaymentList = ({ onSearchClick }) => {
+  const location = useLocation();
   const [payments, setPayments] = useState([]);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +26,9 @@ const PaymentList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [alert, setAlert] = useState(null);
+  const [selectedPayments, setSelectedPayments] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   // Invoice form state
   const [invoiceForm, setInvoiceForm] = useState({
@@ -48,12 +57,21 @@ const PaymentList = () => {
     fetchData();
   }, []);
 
+  // Auto-open modal from dashboard quick action
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowInvoiceModal(true);
+      // Clear the state to prevent reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const [paymentsRes, childrenRes] = await Promise.all([
-        paymentAPI.getAll(),
-        childrenAPI.getAll(),
+        paymentAPI.getAll({ limit: 100 }),
+        childrenAPI.getAll({ limit: 100 }),
       ]);
       setPayments(paymentsRes.data);
       setChildren(childrenRes.data);
@@ -203,6 +221,43 @@ const PaymentList = () => {
     }
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const currentPageItems = getCurrentPageItems();
+      const currentPageIds = currentPageItems.map(p => p._id);
+      setSelectedPayments(currentPageIds);
+    } else {
+      setSelectedPayments([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedPayments.includes(id)) {
+      setSelectedPayments(selectedPayments.filter(paymentId => paymentId !== id));
+    } else {
+      setSelectedPayments([...selectedPayments, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedPayments.length} invoices?\\n\\nThis action cannot be undone.`)) return;
+    
+    try {
+      await Promise.all(selectedPayments.map(id => paymentAPI.delete(id)));
+      setAlert({ type: 'success', message: `${selectedPayments.length} invoices deleted successfully` });
+      setSelectedPayments([]);
+      fetchData();
+    } catch (error) {
+      setAlert({ type: 'error', message: 'Failed to delete selected invoices' });
+    }
+  };
+
+  const handleBulkExport = () => {
+    const paymentsToExport = payments.filter(p => selectedPayments.includes(p._id));
+    exportPaymentsToCSV(paymentsToExport);
+    setAlert({ type: 'success', message: `${selectedPayments.length} payments exported to CSV` });
+  };
+
   const handleDownloadPDF = async (id, invoiceNumber) => {
     try {
       const response = await paymentAPI.downloadPDF(id);
@@ -245,6 +300,18 @@ const PaymentList = () => {
                           payment.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const getCurrentPageItems = () => filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
+  const currentPagePayments = getCurrentPageItems();
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   // Calculate statistics
   const stats = {
@@ -304,7 +371,7 @@ const PaymentList = () => {
                 <p className="text-sm text-green-700 font-medium">
                   {isParent ? 'Total Paid' : 'Total Revenue'}
                 </p>
-                <p className="text-2xl font-bold text-green-700 mt-1">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-700 mt-1">{formatCurrency(stats.totalRevenue)}</p>
               </div>
               <div className="bg-green-200 p-3 rounded-lg">
                 <FiCheck className="text-green-700 text-2xl" />
@@ -316,7 +383,7 @@ const PaymentList = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-amber-700 font-medium">Pending Amount</p>
-                <p className="text-2xl font-bold text-amber-700 mt-1">${stats.pendingAmount.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">{formatCurrency(stats.pendingAmount)}</p>
               </div>
               <div className="bg-amber-200 p-3 rounded-lg">
                 <FiClock className="text-amber-700 text-2xl" />
@@ -386,6 +453,16 @@ const PaymentList = () => {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
+                  {isAdmin && (
+                    <th className="px-4 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedPayments.length === currentPagePayments.length && currentPagePayments.length > 0}
+                        onChange={handleSelectAll}
+                        className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Invoice #
                   </th>
@@ -415,15 +492,31 @@ const PaymentList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPayments.length === 0 ? (
+              {currentPagePayments.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? "8" : "7"} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isAdmin ? "9" : "7"} className="px-6 py-8 text-center text-gray-500">
                     No payments found
                   </td>
                 </tr>
               ) : (
-                filteredPayments.map((payment) => (
-                  <tr key={payment._id} className="hover:bg-gray-50">
+                currentPagePayments.map((payment) => (
+                  <tr 
+                    key={payment._id} 
+                    className={`
+                      hover:bg-gray-50 transition-colors
+                      ${selectedPayments.includes(payment._id) ? 'bg-blue-50' : ''}
+                    `}
+                  >
+                    {isAdmin && (
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedPayments.includes(payment._id)}
+                          onChange={() => handleSelectOne(payment._id)}
+                          className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {payment.invoiceNumber}
                     </td>
@@ -439,10 +532,10 @@ const PaymentList = () => {
                       <span className="capitalize">{payment.type}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      ${payment.amount?.toFixed(2) || '0.00'}
+                      {formatCurrency(payment.amount || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
-                      ${(payment.amountPaid || 0).toFixed(2)}
+                      {formatCurrency(payment.amountPaid || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(payment.dueDate).toLocaleDateString()}
@@ -509,7 +602,32 @@ const PaymentList = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredPayments.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Bulk Actions Toolbar */}
+      {isAdmin && (
+        <BulkActionsToolbar
+          selectedCount={selectedPayments.length}
+          onClearSelection={() => setSelectedPayments([])}
+          actions={[
+            commonBulkActions.delete(handleBulkDelete),
+            commonBulkActions.export(handleBulkExport),
+          ]}
+        />
+      )}
 
       {/* Create Invoice Modal */}
       <Modal
@@ -573,8 +691,8 @@ const PaymentList = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount ($) *
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount (DZD) *
             </label>
             <Input
               type="number"
@@ -647,18 +765,18 @@ const PaymentList = () => {
                 </p>
                 <p>
                   <span className="text-gray-600">Total Amount:</span>{' '}
-                  <span className="font-medium">${selectedInvoice.amount.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(selectedInvoice.amount)}</span>
                 </p>
                 <p>
                   <span className="text-gray-600">Already Paid:</span>{' '}
                   <span className="font-medium text-green-600">
-                    ${selectedInvoice.status === 'paid' ? selectedInvoice.amount.toFixed(2) : '0.00'}
+                    {formatCurrency(selectedInvoice.status === 'paid' ? selectedInvoice.amount : 0)}
                   </span>
                 </p>
                 <p>
                   <span className="text-gray-600">Balance Due:</span>{' '}
                   <span className="font-medium text-red-600">
-                    ${selectedInvoice.status === 'paid' ? '0.00' : selectedInvoice.amount.toFixed(2)}
+                    {formatCurrency(selectedInvoice.status === 'paid' ? 0 : selectedInvoice.amount)}
                   </span>
                 </p>
               </div>

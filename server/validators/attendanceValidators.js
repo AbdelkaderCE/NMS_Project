@@ -170,7 +170,11 @@ export const attendanceQueryValidation = [
   
   query('status')
     .optional()
-    .isIn(Object.values(ATTENDANCE_STATUS))
+    .custom((value) => {
+      // Skip validation for empty strings (from axios empty arrays)
+      if (value === '' || value === null || value === undefined) return true;
+      return Object.values(ATTENDANCE_STATUS).includes(value);
+    })
     .withMessage(`Status must be one of: ${Object.values(ATTENDANCE_STATUS).join(', ')}`),
 ];
 
