@@ -299,10 +299,9 @@ const ActivityList = ({ onSearchClick }) => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Activity Management</h1>
-            <p className="text-gray-600 mt-1">Track daily activities and progress</p>
+            <p className="text-gray-600 mt-1">Schedule and manage nursery activities</p>
           </div>
-        <p className="text-gray-600 mt-1">Schedule and manage nursery activities</p>
-      </div>
+        </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

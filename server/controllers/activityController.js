@@ -10,6 +10,15 @@ import { ROLES } from '../utils/constants.js';
 import { notifyActivityScheduled } from '../utils/notificationHelper.js';
 
 /**
+ * Helper function to extract parent ID from parent reference
+ * Handles both populated and unpopulated parent references
+ */
+const extractParentId = (parent) => {
+  if (!parent) return null;
+  return parent._id?.toString() || parent.toString();
+};
+
+/**
  * @desc    Create activity log
  * @route   POST /api/activities
  * @access  Private (Admin, Staff)
@@ -69,6 +78,7 @@ export const createActivity = async (req, res, next) => {
 
     await activity.populate([
       { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id' } },
+      { path: 'child', select: 'firstName lastName photo parents', populate: { path: 'parents.parent', select: '_id firstName lastName' } },
       { path: 'group', select: 'name maxCapacity', populate: { path: 'class', select: 'name' } },
       { path: 'class', select: 'name ageRange' },
       { path: 'loggedBy', populate: { path: 'user', select: 'firstName lastName' } },
@@ -101,6 +111,68 @@ export const createActivity = async (req, res, next) => {
     
     if (parentIds.size > 0) {
       await notifyActivityScheduled(activity, Array.from(parentIds), io);
+    }
+    // Send real-time notification to parents via Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      let parentIds = [];
+      
+      // Get parent IDs based on activity target
+      if (activity.child) {
+        // For individual child activities
+        parentIds = activity.child.parents?.map(p => extractParentId(p.parent)).filter(Boolean) || [];
+      } else if (activity.group || activity.class) {
+        // For group or class activities, get all children's parents
+        let targetChildren = [];
+        
+        if (activity.group) {
+          // Get children in the group
+          const groupChildren = await Child.find({ assignedGroup: activity.group._id }).populate('parents.parent', '_id');
+          targetChildren = groupChildren;
+        } else if (activity.class) {
+          // Get children in the class
+          const classChildren = await Child.find({ assignedClass: activity.class._id }).populate('parents.parent', '_id');
+          targetChildren = classChildren;
+        }
+        
+        // Extract unique parent IDs
+        const parentIdSet = new Set();
+        targetChildren.forEach(child => {
+          child.parents?.forEach(p => {
+            const parentId = extractParentId(p.parent);
+            if (parentId) parentIdSet.add(parentId);
+          });
+        });
+        parentIds = Array.from(parentIdSet);
+      }
+      
+      // Format notification message
+      let targetName = '';
+      if (activity.child) {
+        targetName = `${activity.child.firstName} ${activity.child.lastName}`;
+      } else if (activity.group) {
+        targetName = activity.group.name;
+      } else if (activity.class) {
+        targetName = activity.class.name;
+      }
+      
+      const notificationMessage = `${activity.title} has been scheduled for ${new Date(activity.date).toLocaleDateString()}`;
+      
+      // Emit to each parent
+      parentIds.forEach(parentId => {
+        io.to(`user:${parentId}`).emit('activity-notification', {
+          type: 'activity',
+          title: 'New Activity Scheduled',
+          message: notificationMessage,
+          activityId: activity._id,
+          activityTitle: activity.title,
+          activityType: activity.type,
+          activityDate: activity.date,
+          targetName: targetName,
+          timestamp: new Date(),
+          link: '/activities/calendar',
+        });
+      });
     }
 
     sendSuccess(res, 201, 'Activity log created successfully', activity);
